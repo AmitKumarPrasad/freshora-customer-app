@@ -3698,16 +3698,22 @@ class _TrackingPageState extends State<TrackingPage> {
 
   @override
   Widget build(BuildContext context) {
-    const steps = [
+    final paymentComplete = order.status == 'DELIVERED' ||
+        (order.payment == 'UPI' && order.status != 'PAYMENT_PENDING');
+    final paymentStep = paymentComplete ? 'PAYMENT_SUCCESS' : 'PAYMENT_PENDING';
+    final steps = [
       'PENDING',
       'ADDRESS_CONFIRMED',
-      'PAYMENT_PENDING',
+      paymentStep,
       'CONFIRMED',
       'PACKING',
       'OUT_FOR_DELIVERY',
       'DELIVERED'
     ];
-    final current = steps.indexOf(order.status);
+    final currentStatus = order.status == 'PAYMENT_PENDING' && paymentComplete
+        ? paymentStep
+        : order.status;
+    final current = steps.indexOf(currentStatus);
     final effectiveIndex = current < 0 ? 0 : current;
     final t = tracking;
     return Scaffold(
