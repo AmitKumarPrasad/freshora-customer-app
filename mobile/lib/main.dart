@@ -3324,6 +3324,78 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   late OrderRecord order = widget.order;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAskForProductRequest());
+  }
+
+  Future<void> _maybeAskForProductRequest() async {
+    if (!mounted || widget.api == null || order.status.toUpperCase() != 'DELIVERED') return;
+    final orderId = int.tryParse(order.id);
+    if (orderId == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final promptKey = 'product_request_prompt_seen_${order.id}';
+    if (prefs.getBool(promptKey) == true || !mounted) return;
+    await prefs.setBool(promptKey, true);
+    if (!mounted) return;
+
+    final controller = TextEditingController();
+    final suggestion = await showDialog<String?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Help us stock what you need'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Your order was delivered successfully. Which product would you like us to add to FRESHORA?',
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 3,
+              maxLength: 1000,
+              decoration: const InputDecoration(
+                hintText: 'For example: baby food, coconut water, or spices',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Send suggestion'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    final text = suggestion?.trim() ?? '';
+    if (text.isEmpty || !mounted) return;
+    try {
+      await widget.api!.submitProductRequest(orderId, text);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thanks! Your product request was sent.')),
+      );
+    } on CustomerApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: Text('Order #' + order.id)),
         body: ListView(

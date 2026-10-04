@@ -204,6 +204,19 @@ class HttpCustomerRepository {
     return otp;
   }
 
+  Future<void> submitProductRequest(int orderId, String requestText) async {
+    final text = requestText.trim();
+    if (text.isEmpty) {
+      throw const CustomerApiException('Please enter a product suggestion.');
+    }
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/customers/me/orders/$orderId/product-request'),
+      headers: _headers,
+      body: jsonEncode({'request_text': text}),
+    );
+    _success(response);
+  }
+
   Future<OrderRecord> getOrder(int orderId) async {
     final response = await _client.get(Uri.parse("$_baseUrl/customers/me/orders/$orderId"), headers: _headers);
     return _orderFromApi(_success(response));
