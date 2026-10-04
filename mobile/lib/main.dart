@@ -3497,6 +3497,8 @@ class _TrackingPageState extends State<TrackingPage> {
   final _chatController = TextEditingController();
   final _chatScrollController = ScrollController();
   bool _sendingMessage = false;
+  bool _requestingDeliveryOtp = false;
+  String? _deliveryOtp;
   Timer? _pollTimer;
 
   @override
@@ -3563,6 +3565,21 @@ class _TrackingPageState extends State<TrackingPage> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  Future<void> _requestDeliveryOtp() async {
+    final api = widget.api;
+    final id = int.tryParse(order.id);
+    if (api == null || id == null || _requestingDeliveryOtp) return;
+    setState(() => _requestingDeliveryOtp = true);
+    try {
+      final otp = await api.requestDeliveryOtp(id);
+      if (mounted) setState(() => _deliveryOtp = otp);
+    } on CustomerApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _requestingDeliveryOtp = false);
+    }
   }
 
   Future<void> _sendMessage() async {
@@ -3749,6 +3766,31 @@ class _TrackingPageState extends State<TrackingPage> {
                   ]),
             ),
           ),
+          const SizedBox(height: 8),
+          if (order.status == 'OUT_FOR_DELIVERY' && t.deliveryStatus == 'OUT_FOR_DELIVERY')
+            Card(
+              color: const Color(0xFFEAF7EE),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Delivery verification', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    const SizedBox(height: 6),
+                    const Text('Generate a one-time code and share it with your delivery partner only at handoff.'),
+                    const SizedBox(height: 12),
+                    if (_deliveryOtp != null)
+                      SelectableText(_deliveryOtp!, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 8)),
+                    if (_deliveryOtp != null) const SizedBox(height: 8),
+                    FilledButton.icon(
+                      onPressed: _requestingDeliveryOtp ? null : _requestDeliveryOtp,
+                      icon: const Icon(Icons.lock_outline),
+                      label: Text(_requestingDeliveryOtp ? 'Generating…' : (_deliveryOtp == null ? 'Show delivery OTP' : 'Generate new OTP')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           const SizedBox(height: 8),
           Card(
             child: Padding(
