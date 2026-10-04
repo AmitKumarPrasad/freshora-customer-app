@@ -3767,7 +3767,7 @@ class _TrackingPageState extends State<TrackingPage> {
             ),
           ),
           const SizedBox(height: 8),
-          if (order.status == 'OUT_FOR_DELIVERY' && t?.deliveryStatus == 'OUT_FOR_DELIVERY')
+          if (order.status == 'OUT_FOR_DELIVERY' && t != null && t.deliveryStatus == 'OUT_FOR_DELIVERY')
             Card(
               color: const Color(0xFFEAF7EE),
               child: Padding(
