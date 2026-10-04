@@ -14,6 +14,7 @@ class CustomerApiException implements Exception {
 class OrderTracking {
   const OrderTracking({
     required this.status,
+    this.deliveryStatus = '',
     this.deliveryPersonName,
     this.deliveryPersonPhone,
     this.lat,
@@ -22,6 +23,7 @@ class OrderTracking {
   });
 
   final String status;
+  final String deliveryStatus;
   final String? deliveryPersonName;
   final String? deliveryPersonPhone;
   final double? lat;
@@ -32,6 +34,7 @@ class OrderTracking {
 
   factory OrderTracking.fromJson(Map<String, dynamic> json) => OrderTracking(
         status: json['status'] as String? ?? 'PENDING',
+        deliveryStatus: json['delivery_status'] as String? ?? '',
         deliveryPersonName: json['delivery_person_name'] as String?,
         deliveryPersonPhone: json['delivery_person_phone'] as String?,
         lat: (json['delivery_lat'] as num?)?.toDouble(),
@@ -186,6 +189,19 @@ class HttpCustomerRepository {
       throw const CustomerApiException('Payment link was not returned by the server.');
     }
     return url;
+  }
+
+  Future<String> requestDeliveryOtp(int orderId) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/customers/me/orders/$orderId/delivery-otp'),
+      headers: _headers,
+    );
+    final body = _success(response);
+    final otp = body['delivery_otp'];
+    if (otp is! String || otp.length != 6) {
+      throw const CustomerApiException('Delivery OTP was not returned by the server.');
+    }
+    return otp;
   }
 
   Future<OrderRecord> getOrder(int orderId) async {
