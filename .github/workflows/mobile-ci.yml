@@ -64,7 +64,7 @@ jobs:
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: talegaon-fresh-release-apk
+          name: freshora-customer-apk-${{ github.sha }}
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
       - name: Upload signed release AAB artifact
