@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,67 @@ import 'package:talegaon_fresh/customer_api.dart';
 import 'package:talegaon_fresh/main.dart';
 
 void main() {
+  test('cart writes finish in order before checkout clears the cart', () async {
+    final firstWrite = Completer<void>();
+    final firstStarted = Completer<void>();
+    final requests = <String>[];
+    final quantities = <int>[];
+    var savedQuantity = 0;
+    final repository = HttpCustomerRepository(
+      token: 'jwt-token',
+      client: MockClient((request) async {
+        requests.add(request.method);
+        if (request.method == 'DELETE') {
+          savedQuantity = 0;
+        } else {
+          final items = (jsonDecode(request.body) as Map)['items'] as List;
+          if (!firstStarted.isCompleted) {
+            firstStarted.complete();
+            await firstWrite.future;
+          }
+          savedQuantity = (items.single as Map)['quantity'] as int;
+          quantities.add(savedQuantity);
+        }
+        return http.Response('{}', 200);
+      }),
+      baseUrl: 'https://example.test',
+    );
+    const product = Product(
+      name: 'Tomato', unit: 'kg', price: 40, icon: Icons.local_grocery_store,
+    );
+    final cart = [CartItem(product, 1)];
+    final first = repository.replaceCart(cart);
+    await firstStarted.future;
+    cart.single.quantity = 2;
+    final second = repository.replaceCart(cart);
+    cart.single.quantity = 3;
+    final clear = repository.clearCart();
+    await Future<void>.delayed(Duration.zero);
+    final requestsWhilePending = List<String>.from(requests);
+    firstWrite.complete();
+    await Future.wait([first, second, clear]);
+
+    expect(requestsWhilePending, ['PUT']);
+    expect(requests, ['PUT', 'PUT', 'DELETE']);
+    expect(quantities, [1, 2]);
+    expect(savedQuantity, 0);
+  });
+
+  test('a failed cart write does not prevent the next write', () async {
+    var calls = 0;
+    final repository = HttpCustomerRepository(
+      token: 'jwt-token',
+      client: MockClient((_) async => ++calls == 1
+          ? http.Response('{"detail":"Try again"}', 503)
+          : http.Response('{}', 200)),
+      baseUrl: 'https://example.test',
+    );
+    await expectLater(repository.replaceCart([]),
+        throwsA(isA<CustomerApiException>()));
+    await repository.clearCart();
+    expect(calls, 2);
+  });
+
   const address = CustomerAddress(
     id: 42,
     label: 'Home',

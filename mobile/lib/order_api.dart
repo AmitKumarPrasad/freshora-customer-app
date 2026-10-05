@@ -102,7 +102,9 @@ class HttpOrderRepository implements OrderRepository {
       var message = 'ORDER_API_ERROR';
       try {
         final decoded = jsonDecode(response.body);
-        if (decoded is Map && decoded['message'] is String) {
+        if (decoded is Map && decoded['detail'] is String) {
+          message = decoded['detail'] as String;
+        } else if (decoded is Map && decoded['message'] is String) {
           message = decoded['message'] as String;
         } else if (decoded is Map && decoded['error'] is String) {
           message = decoded['error'] as String;
