@@ -95,4 +95,22 @@ void main() {
 
     expect(repo.fetchOrders, throwsA(isA<OrderApiException>()));
   });
+
+  test('checkout reports the backend stock rejection', () async {
+    final repo = HttpOrderRepository(
+      client: MockClient((_) async => http.Response(
+        jsonEncode({'detail': 'Insufficient stock: Tomato'}), 409,
+      )),
+      baseUrl: 'https://example.test',
+    );
+
+    await expectLater(
+      repo.createOrder(const CreateOrderRequest(
+        items: [line], total: 80, payment: 'COD', address: address,
+      )),
+      throwsA(isA<OrderApiException>().having(
+        (error) => error.message, 'message', 'Insufficient stock: Tomato',
+      )),
+    );
+  });
 }

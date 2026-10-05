@@ -74,6 +74,14 @@ class HttpCustomerRepository {
   final String token;
   final http.Client _client;
   final String _baseUrl;
+  Future<void> _cartWrites = Future<void>.value();
+
+  Future<void> _queueCartWrite(Future<void> Function() write) {
+    final result = _cartWrites.then((_) => write());
+    // Report the failure to this caller without blocking subsequent edits.
+    _cartWrites = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
 
   Map<String, String> get _headers => {
         'Accept': 'application/json',
@@ -141,23 +149,29 @@ class HttpCustomerRepository {
     return result;
   }
 
-  Future<void> replaceCart(List<CartItem> cart) async {
-    final response = await _client.put(
-      Uri.parse('$_baseUrl/customers/me/cart'),
-      headers: _headers,
-      body: jsonEncode({'items': cart.map((item) => {
+  Future<void> replaceCart(List<CartItem> cart) {
+    // Capture this edit before the mutable UI cart changes again.
+    final body = jsonEncode({'items': cart.map((item) => {
         'name': item.product.name,
         'unit': item.product.unit,
         'price': item.product.price,
         'quantity': item.quantity,
-      }).toList()}),
-    );
-    _success(response);
+      }).toList()});
+    return _queueCartWrite(() async {
+      final response = await _client.put(
+        Uri.parse('$_baseUrl/customers/me/cart'),
+        headers: _headers,
+        body: body,
+      );
+      _success(response);
+    });
   }
 
-  Future<void> clearCart() async {
-    final response = await _client.delete(Uri.parse('$_baseUrl/customers/me/cart'), headers: _headers);
-    _success(response);
+  Future<void> clearCart() {
+    return _queueCartWrite(() async {
+      final response = await _client.delete(Uri.parse('$_baseUrl/customers/me/cart'), headers: _headers);
+      _success(response);
+    });
   }
 
   Future<OrderRecord> createOrder(List<CartItem> cart, CustomerAddress address, String payment) async {
