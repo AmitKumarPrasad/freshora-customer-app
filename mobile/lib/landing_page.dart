@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+
 import 'widgets/freshora_logo.dart';
+
+const _forest = Color(0xFF173B2E);
+const _cream = Color(0xFFFAF7EF);
+const _orange = Color(0xFFFFB477);
 
 class TalegaonLandingPage extends StatelessWidget {
   const TalegaonLandingPage({
@@ -11,315 +16,277 @@ class TalegaonLandingPage extends StatelessWidget {
   final VoidCallback onCreateAccount;
   final VoidCallback onSignIn;
 
-  static const _green = Color(0xFF0B5B2C);
-  static const _yellow = Color(0xFFFFD73F);
-  static const _ink = Color(0xFF14251A);
-  static const _page = Color(0xFFF6F8EF);
-
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: _page,
+        backgroundColor: _cream,
         body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, viewport) {
-              final compact = viewport.maxWidth < 720;
-              final horizontalPadding = compact ? 16.0 : 32.0;
-              return SingleChildScrollView(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1180),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        compact ? 14 : 24,
-                        horizontalPadding,
-                        28,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _header(compact),
-                          const SizedBox(height: 32),
-                          _hero(compact),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Fresh fruits and vegetables, simply delivered.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Color(0xFF667268), fontSize: 15),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final compact = constraints.maxWidth < 760;
+            return SingleChildScrollView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                        compact ? 20 : 40, 20, compact ? 20 : 40, 36),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(children: [
+                          const FreshoraLogo(size: 43),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('FRESHORA',
+                                    style: TextStyle(
+                                        color: _forest,
+                                        fontSize: 18,
+                                        letterSpacing: 1.2,
+                                        fontWeight: FontWeight.w900)),
+                                Text('THE LOCAL FRESH MARKET',
+                                    style: TextStyle(
+                                        color: Color(0xFF728578),
+                                        fontSize: 9,
+                                        letterSpacing: 1.8,
+                                        fontWeight: FontWeight.w700)),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
+                          TextButton(
+                              onPressed: onSignIn,
+                              child: const Text('Sign in',
+                                  style: TextStyle(
+                                      color: _forest,
+                                      fontWeight: FontWeight.w800))),
+                        ]),
+                        SizedBox(height: compact ? 24 : 42),
+                        Container(
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: _forest,
+                            borderRadius:
+                                BorderRadius.circular(compact ? 30 : 40),
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: Color(0x26173B2E),
+                                  blurRadius: 32,
+                                  offset: Offset(0, 18)),
+                            ],
+                          ),
+                          child: compact
+                              ? Column(children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        26, 30, 26, 0),
+                                    child: _heroCopy(compact),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const _ProduceScene(compact: true),
+                                ])
+                              : Row(children: [
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(48),
+                                      child: _heroCopy(compact),
+                                    ),
+                                  ),
+                                  const Expanded(
+                                      child: _ProduceScene(compact: false)),
+                                ]),
+                        ),
+                        const SizedBox(height: 25),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: const [
+                            _Promise(
+                                icon: Icons.grass_rounded,
+                                text: 'Picked fresh'),
+                            _Promise(
+                                icon: Icons.storefront_rounded,
+                                text: 'From local sellers'),
+                            _Promise(
+                                icon: Icons.door_front_door_rounded,
+                                text: 'To your doorstep'),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          }),
         ),
       );
 
-  Widget _header(bool compact) => Row(
+  Widget _heroCopy(bool compact) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const FreshoraLogo(size: 48),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'FRESHORA',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  'Freshness from farm to home',
-                  style: TextStyle(color: Color(0xFF667268), fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          if (!compact)
-            FilledButton(
-              onPressed: onCreateAccount,
-              style: FilledButton.styleFrom(
-                backgroundColor: _green,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Create account'),
-            )
-          else
-            TextButton(onPressed: onSignIn, child: const Text('Sign in')),
-        ],
-      );
-
-  Widget _hero(bool compact) {
-    final copy = Column(
-      crossAxisAlignment:
-          compact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-      children: [
-        const FreshoraLogo(size: 56),
-        const SizedBox(height: 18),
-        Text.rich(
-          TextSpan(
+          const Text('FRESH DAYS START HERE',
+              style: TextStyle(
+                  color: Color(0xFFFFD89A),
+                  letterSpacing: 2.2,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900)),
+          const SizedBox(height: 18),
+          Text.rich(
+            const TextSpan(children: [
+              TextSpan(text: 'Good food.\n'),
+              TextSpan(text: 'Good mood.', style: TextStyle(color: _orange)),
+            ]),
             style: TextStyle(
-              color: Colors.white,
-              height: 1.02,
-              fontSize: compact ? 34 : 48,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.2,
-            ),
-            children: const [
-              TextSpan(text: 'Fresh food,\n'),
-              TextSpan(
-                text: 'right to your door.',
-                style: TextStyle(color: _yellow),
-              ),
-            ],
+                color: Colors.white,
+                fontFamily: 'serif',
+                fontWeight: FontWeight.w800,
+                fontSize: compact ? 40 : 58,
+                height: 1.03,
+                letterSpacing: -1.5),
           ),
-          textAlign: compact ? TextAlign.center : TextAlign.left,
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Farm-fresh fruits and vegetables, carefully picked for your family, every day.',
-          textAlign: compact ? TextAlign.center : TextAlign.left,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .87),
-            fontSize: compact ? 15 : 17,
-            height: 1.45,
+          const SizedBox(height: 16),
+          const Text(
+            'The everyday market for fresh produce and family favourites in Talegaon.',
+            style:
+                TextStyle(color: Color(0xFFD6E7D9), fontSize: 15, height: 1.45),
           ),
-        ),
-        const SizedBox(height: 22),
-        Wrap(
-          alignment: compact ? WrapAlignment.center : WrapAlignment.start,
-          spacing: 10,
-          runSpacing: 10,
-          children: [
+          const SizedBox(height: 25),
+          Wrap(spacing: 10, runSpacing: 10, children: [
             FilledButton.icon(
               onPressed: onCreateAccount,
-              icon: const Icon(Icons.shopping_basket_outlined),
-              label: const Text('Start shopping'),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+              label: const Text('Explore the market'),
               style: FilledButton.styleFrom(
-                backgroundColor: _yellow,
-                foregroundColor: _ink,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 15,
-                ),
+                backgroundColor: _orange,
+                foregroundColor: _forest,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
             ),
-            OutlinedButton.icon(
+            OutlinedButton(
               onPressed: onSignIn,
-              icon: const Icon(Icons.login_rounded),
-              label: const Text('Sign in'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withValues(alpha: .65)),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 15,
-                ),
+                side: const BorderSide(color: Color(0x99FFFFFF)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
+              child: const Text('Sign in'),
             ),
-          ],
-        ),
-      ],
-    );
-
-    final visual = _ProduceCollage(compact: compact);
-    return Container(
-      padding: EdgeInsets.all(compact ? 22 : 34),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0A4C28), Color(0xFF168B45), Color(0xFF31A554)],
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x24104F2C),
-            blurRadius: 28,
-            offset: Offset(0, 14),
-          ),
+          ]),
         ],
-      ),
-      child: compact
-          ? Column(
-              children: [
-                copy,
-                const SizedBox(height: 12),
-                visual,
-              ],
-            )
-          : Row(
-              children: [
-                Expanded(flex: 11, child: copy),
-                const SizedBox(width: 10),
-                Expanded(flex: 9, child: visual),
-              ],
-            ),
-    );
-  }
-
+      );
 }
 
-class _ProduceCollage extends StatelessWidget {
-  const _ProduceCollage({required this.compact});
+class _ProduceScene extends StatelessWidget {
+  const _ProduceScene({required this.compact});
 
   final bool compact;
 
-  Widget _fruit(String path, double size) => Container(
+  Widget _produce(String image, double size, Color background) => Container(
         width: size,
         height: size,
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
+          color: background,
+          borderRadius: BorderRadius.circular(size * .38),
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withValues(alpha: .2),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
+                color: Color(0x44000000),
+                blurRadius: 22,
+                offset: Offset(0, 12)),
           ],
         ),
-        child: ClipOval(
-          child: Image.asset(
-            path,
-            fit: BoxFit.cover,
-            alignment: const Alignment(0, .06),
-            errorBuilder: (_, __, ___) => const ColoredBox(
-              color: Color(0xFFEAF5E6),
-              child: Icon(Icons.eco_rounded, color: TalegaonLandingPage._green, size: 42),
-            ),
-          ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(size * .32),
+          child: Image.asset(image, fit: BoxFit.cover),
         ),
       );
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          return SizedBox(
-            height: compact ? 270 : 310,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  left: width * .08,
-                  right: width * .08,
-                  bottom: 5,
-                  child: Container(
-                    height: compact ? 72 : 82,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF9A5829), Color(0xFFD1904F)],
-                      ),
-                      border:
-                          Border.all(color: const Color(0xFFFFD39A), width: 3),
-                    ),
-                  ),
-                ),
-                Positioned(
-                    left: width * .04,
-                    top: 94,
-                    child:
-                        _fruit('assets/images/products/banana.png', compact ? 98 : 112)),
-                Positioned(
-                    left: width * .34,
-                    top: 28,
-                    child: _fruit(
-                        'assets/images/products/tomatoes.png', compact ? 126 : 146)),
-                Positioned(
-                    right: width * .02,
-                    top: 101,
-                    child: _fruit(
-                        'assets/images/products/green_grapes.png', compact ? 100 : 118)),
-                Positioned(
-                    left: width * .18,
-                    top: compact ? 150 : 164,
-                    child:
-                        _fruit('assets/images/products/apples.png', compact ? 104 : 120)),
-                Positioned(
-                    right: width * .19,
-                    top: compact ? 158 : 174,
-                    child:
-                        _fruit('assets/images/products/carrots.png', compact ? 96 : 112)),
-                Positioned(
-                  right: width * .04,
-                  top: 10,
-                  child: Transform.rotate(
-                    angle: .13,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 11, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD73F),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
-                          BoxShadow(
-                              color: Color(0x33000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 4))
-                        ],
-                      ),
-                      child: const Text('PICKED FRESH',
-                          style: TextStyle(
-                              color: TalegaonLandingPage._ink,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 10,
-                              letterSpacing: .5)),
-                    ),
-                  ),
-                ),
-              ],
+  Widget build(BuildContext context) => SizedBox(
+        height: compact ? 240 : 430,
+        child: LayoutBuilder(builder: (context, box) {
+          final width = box.maxWidth;
+          return Stack(clipBehavior: Clip.hardEdge, children: [
+            Positioned(
+              width: compact ? 265 : 370,
+              height: compact ? 265 : 370,
+              right: compact ? -22 : -40,
+              top: compact ? 10 : 28,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                    color: Color(0xFF2B6543), shape: BoxShape.circle),
+              ),
             ),
-          );
-        },
+            Positioned(
+                top: compact ? 7 : 48,
+                left: width * .28,
+                child: Transform.rotate(
+                    angle: -.15,
+                    child: _produce('assets/images/products/tomatoes.png',
+                        compact ? 105 : 148, const Color(0xFFFFE3C9)))),
+            Positioned(
+                top: compact ? 70 : 170,
+                left: width * .05,
+                child: Transform.rotate(
+                    angle: .12,
+                    child: _produce('assets/images/products/banana.png',
+                        compact ? 104 : 140, const Color(0xFFFFEAA7)))),
+            Positioned(
+                top: compact ? 101 : 189,
+                right: width * .08,
+                child: Transform.rotate(
+                    angle: .09,
+                    child: _produce('assets/images/products/apples.png',
+                        compact ? 108 : 150, const Color(0xFFFFD6C7)))),
+            Positioned(
+                right: width * .08,
+                top: compact ? 15 : 51,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFFFD884),
+                      borderRadius: BorderRadius.circular(30)),
+                  child: const Text('FRESH PICKS',
+                      style: TextStyle(
+                          color: _forest,
+                          letterSpacing: 1.2,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900)),
+                )),
+          ]);
+        }),
       );
 }
 
+class _Promise extends StatelessWidget {
+  const _Promise({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: const Color(0xFFE7EBDD)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 17, color: _forest),
+          const SizedBox(width: 7),
+          Text(text,
+              style: const TextStyle(
+                  color: _forest, fontSize: 12, fontWeight: FontWeight.w700)),
+        ]),
+      );
+}

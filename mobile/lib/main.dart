@@ -841,11 +841,11 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       );
 }
 
-const _brandGreen = Color(0xFF168447);
-const _brandGreenDark = Color(0xFF0D5C30);
-const _surfaceTint = Color(0xFFF6F9F6);
-const _ink = Color(0xFF173021);
-const _mutedInk = Color(0xFF5E6F64);
+const _brandGreen = Color(0xFF245841);
+const _brandGreenDark = Color(0xFF173B2E);
+const _surfaceTint = Color(0xFFFAF7EF);
+const _ink = Color(0xFF19372B);
+const _mutedInk = Color(0xFF657A6D);
 
 ThemeData _buildTheme() {
   final colorScheme = ColorScheme.fromSeed(
@@ -879,11 +879,11 @@ ThemeData _buildTheme() {
       elevation: 0,
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: _brandGreen,
+        backgroundColor: _brandGreenDark,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -949,39 +949,34 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFEFF8F0), Color(0xFFD8EFDD)],
-            ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: const BoxDecoration(
-                      color: Colors.white, shape: BoxShape.circle),
-                  child:
-                      const Icon(Icons.eco, size: 72, color: Color(0xFF168447)),
+        backgroundColor: _surfaceTint,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: _brandGreenDark,
+                  borderRadius: BorderRadius.circular(34),
                 ),
-                const SizedBox(height: 24),
-                const Text('FRESHORA',
-                    style: TextStyle(
-                        fontSize: 30,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF168447))),
-                const SizedBox(height: 8),
-                const Text('Fresh • Local • Delivered.',
-                    style: TextStyle(fontSize: 15, color: Colors.black54)),
-              ],
-            ),
+                child: const FreshoraLogo(size: 72),
+              ),
+              const SizedBox(height: 26),
+              const Text('FRESHORA',
+                  style: TextStyle(
+                      fontSize: 30,
+                      letterSpacing: 1.8,
+                      fontWeight: FontWeight.w900,
+                      color: _brandGreenDark)),
+              const SizedBox(height: 7),
+              const Text('THE LOCAL FRESH MARKET',
+                  style: TextStyle(
+                      color: _mutedInk,
+                      fontSize: 11,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.w800)),
+            ],
           ),
         ),
       );
@@ -1482,6 +1477,7 @@ class _AppShellState extends State<AppShell> {
           loading: loading,
           error: error,
           onRetry: _loadProducts,
+          onBrowse: () => setState(() => tab = 1),
           onAdd: add,
           onOpenProduct: _openProduct,
           favorites: favorites,
@@ -1564,7 +1560,7 @@ class _AppShellState extends State<AppShell> {
           child: NavigationBar(
             selectedIndex: tab,
             onDestinationSelected: (i) => setState(() => tab = i),
-            indicatorColor: const Color(0xFFDCF2E1),
+            indicatorColor: const Color(0xFFFFE6D2),
             backgroundColor: Colors.white,
             elevation: 0,
             destinations: [
@@ -1612,6 +1608,7 @@ class HomePage extends StatefulWidget {
       required this.loading,
       this.error,
       required this.onRetry,
+      required this.onBrowse,
       required this.onAdd,
       required this.onOpenProduct,
       required this.favorites,
@@ -1625,6 +1622,7 @@ class HomePage extends StatefulWidget {
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
+  final VoidCallback onBrowse;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onOpenProduct;
   final Set<String> favorites;
@@ -1654,7 +1652,8 @@ class _HomePageState extends State<HomePage> {
         .where((product) =>
             query.isEmpty ||
             product.name.toLowerCase().contains(query) ||
-            product.unit.toLowerCase().contains(query))
+            product.unit.toLowerCase().contains(query) ||
+            product.category.toLowerCase().contains(query))
         .toList();
     return CustomScrollView(
       slivers: [
@@ -1662,10 +1661,14 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
           sliver: SliverToBoxAdapter(
             child: Row(children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Image.asset('assets/images/app_icon.png',
-                    width: 46, height: 46),
+                    width: 38, height: 38),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1674,7 +1677,10 @@ class _HomePageState extends State<HomePage> {
                       children: [
                     const Text('FRESHORA',
                         style: TextStyle(
-                            fontSize: 19, fontWeight: FontWeight.w800)),
+                            color: _brandGreenDark,
+                            fontSize: 19,
+                            letterSpacing: 1.1,
+                            fontWeight: FontWeight.w900)),
                     Row(children: [
                       if (widget.location != null) ...[
                         const Icon(Icons.location_on,
@@ -1683,7 +1689,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                       Flexible(
                           child: Text(
-                              widget.location ?? 'Freshness from farm to home',
+                              widget.location ?? 'Your local fresh market',
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Colors.black54))),
                     ]),
@@ -1711,7 +1717,7 @@ class _HomePageState extends State<HomePage> {
               controller: _searchController,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Search vegetables, dairy, snacks, grocery...',
+                hintText: 'Search your fresh favourites',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: query.isEmpty
                     ? null
@@ -1726,7 +1732,7 @@ class _HomePageState extends State<HomePage> {
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide.none),
               ),
             ),
@@ -1735,50 +1741,105 @@ class _HomePageState extends State<HomePage> {
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           sliver: SliverToBoxAdapter(
-            child: Container(
-              height: 165,
-              decoration:
-                  BoxDecoration(borderRadius: BorderRadius.circular(24)),
+            child: LayoutBuilder(builder: (context, size) => Container(
+              height: 190,
               clipBehavior: Clip.antiAlias,
-              child: Stack(fit: StackFit.expand, children: [
-                Image.asset('assets/images/products/leafy_greens.png',
-                    fit: BoxFit.cover),
-                const DecoratedBox(
-                    decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                  colors: [Color(0xD90B5B2C), Color(0x99168B45)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ))),
-                const Padding(
-                  padding: EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFE9F1DF),
+                  borderRadius: BorderRadius.circular(28)),
+              child: Stack(children: [
+                Positioned(
+                  right: -32,
+                  top: -31,
+                  child: Container(
+                    width: 235,
+                    height: 235,
+                    decoration: const BoxDecoration(
+                        color: Color(0xFFFFD8BD), shape: BoxShape.circle),
+                  ),
+                ),
+                Positioned(
+                  right: -4,
+                  bottom: -17,
+                  child: Transform.rotate(
+                    angle: -.15,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: Image.asset('assets/images/products/tomatoes.png',
+                          width: 158, height: 158, fit: BoxFit.cover),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 21,
+                  top: 19,
+                  width: size.maxWidth * .58,
                   child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Fresh From\nLocal Farmers',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 25,
-                                fontWeight: FontWeight.w800)),
-                        SizedBox(height: 8),
-                        Text('Healthy food • Happier families',
-                            style: TextStyle(color: Colors.white70)),
-                        Spacer(),
-                        Text('Fresh • Local • Delivered',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600)),
-                      ]),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('THE MARKET IS OPEN',
+                          style: TextStyle(
+                              color: _brandGreenDark,
+                              fontSize: 10,
+                              letterSpacing: 1.7,
+                              fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 8),
+                      const Text('Fresh picks\nfor your table.',
+                          maxLines: 2,
+                          style: TextStyle(
+                              color: _brandGreenDark,
+                              fontFamily: 'serif',
+                              fontSize: 26,
+                              height: 1.04,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 10),
+                      FilledButton(
+                        onPressed: widget.onBrowse,
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 38),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            backgroundColor: _brandGreenDark),
+                        child: const Text('Shop the market'),
+                      ),
+                    ],
+                  ),
                 ),
               ]),
+            )),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 60,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+              children: [
+                for (final category in const ['All', 'Vegetables', 'Fruits', 'Dairy'])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(category),
+                      selected: query == category.toLowerCase() ||
+                          (query.isEmpty && category == 'All'),
+                      onSelected: (_) => setState(() {
+                        _searchController.text = category == 'All' ? '' : category;
+                      }),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
         const SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
           sliver: SliverToBoxAdapter(
               child: Text("Today's Products",
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+                  style: TextStyle(
+                      color: _brandGreenDark,
+                      fontFamily: 'serif',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800))),
         ),
         if (widget.loading)
           const SliverToBoxAdapter(

@@ -2,27 +2,83 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talegaon_fresh/main.dart';
+import 'package:talegaon_fresh/landing_page.dart';
 import 'package:talegaon_fresh/product_api.dart';
 
 class FakeProductRepository implements ProductRepository {
   @override
   Future<List<ApiProduct>> fetchProducts() async => const [
-        ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true, category: 'Vegetables'),
-        ApiProduct(id: 2, name: 'Potato', unit: '1 kg', price: 25, inStock: true, category: 'Vegetables'),
+        ApiProduct(
+            id: 1,
+            name: 'Tomato',
+            unit: '1 kg',
+            price: 30,
+            inStock: true,
+            category: 'Vegetables'),
+        ApiProduct(
+            id: 2,
+            name: 'Potato',
+            unit: '1 kg',
+            price: 25,
+            inStock: true,
+            category: 'Vegetables'),
       ];
 }
 
 class ExpandedProductRepository implements ProductRepository {
   @override
   Future<List<ApiProduct>> fetchProducts() async => const [
-        ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true, category: 'Vegetables'),
-        ApiProduct(id: 21, name: 'Amul Taaza Milk', unit: '1 L', price: 59, inStock: true, category: 'Dairy'),
-        ApiProduct(id: 26, name: "Lay's Cream & Onion Chips", unit: '58 g', price: 20, inStock: true, category: 'Snacks'),
-        ApiProduct(id: 31, name: 'Aashirvaad Whole Wheat Atta', unit: '5 kg', price: 264, inStock: true, category: 'Grocery'),
+        ApiProduct(
+            id: 1,
+            name: 'Tomato',
+            unit: '1 kg',
+            price: 30,
+            inStock: true,
+            category: 'Vegetables'),
+        ApiProduct(
+            id: 21,
+            name: 'Amul Taaza Milk',
+            unit: '1 L',
+            price: 59,
+            inStock: true,
+            category: 'Dairy'),
+        ApiProduct(
+            id: 26,
+            name: "Lay's Cream & Onion Chips",
+            unit: '58 g',
+            price: 20,
+            inStock: true,
+            category: 'Snacks'),
+        ApiProduct(
+            id: 31,
+            name: 'Aashirvaad Whole Wheat Atta',
+            unit: '5 kg',
+            price: 264,
+            inStock: true,
+            category: 'Grocery'),
       ];
 }
 
 void main() {
+  testWidgets('market welcome fits a phone and opens account creation',
+      (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    var opened = false;
+    await tester.pumpWidget(MaterialApp(
+      home: TalegaonLandingPage(
+        onCreateAccount: () => opened = true,
+        onSignIn: () {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Explore the market'));
+    expect(opened, isTrue);
+  });
+
   testWidgets('FRESHORA starts with customer authentication', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
@@ -88,7 +144,8 @@ void main() {
     expect(find.text('Add Address'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
-        (widget) => widget is Text && widget.data?.contains('Talegaon Dabhade') == true,
+        (widget) =>
+            widget is Text && widget.data?.contains('Talegaon Dabhade') == true,
       ),
       findsNothing,
     );
@@ -129,7 +186,8 @@ void main() {
     expect(find.text('per 1 kg'), findsWidgets);
   });
 
-  testWidgets('Home search filters products and opens notifications', (tester) async {
+  testWidgets('Home search filters products and opens notifications',
+      (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
@@ -154,7 +212,8 @@ void main() {
     expect(find.text('No notifications yet'), findsOneWidget);
   });
 
-  testWidgets('product catalog filters expanded backend categories', (tester) async {
+  testWidgets('product catalog filters expanded backend categories',
+      (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
