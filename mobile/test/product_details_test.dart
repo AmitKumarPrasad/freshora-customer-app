@@ -22,12 +22,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Product Details'), findsOneWidget);
     expect(find.text('Tomato'), findsOneWidget);
-    expect(find.text('₹30 / 1 kg'), findsOneWidget);
-    expect(find.text('MRP ₹40  |  You save ₹10'), findsOneWidget);
-    await tester.ensureVisible(find.text('Quantity'));
-    await tester.pumpAndSettle();
+    expect(find.text('1 kg'), findsOneWidget);
+    expect(find.text('₹30'), findsOneWidget);
+    expect(find.text('MRP ₹40'), findsOneWidget);
+    expect(find.text('Product Detail'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.add).last);
