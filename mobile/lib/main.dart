@@ -4068,20 +4068,27 @@ class _TrackingPageState extends State<TrackingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final paymentComplete = order.status == 'DELIVERED' ||
-        (order.payment == 'UPI' && order.status != 'PAYMENT_PENDING');
-    final paymentStep = paymentComplete ? 'PAYMENT_SUCCESS' : 'PAYMENT_PENDING';
-    final steps = [
-      'PENDING',
-      'ADDRESS_CONFIRMED',
-      paymentStep,
-      'CONFIRMED',
-      'PACKING',
-      'OUT_FOR_DELIVERY',
-      'DELIVERED'
-    ];
-    final currentStatus = order.status == 'PAYMENT_PENDING' && paymentComplete
-        ? paymentStep
+    final steps = order.status == 'CANCELLED'
+        ? ['PENDING', 'CANCELLED']
+        : [
+            'PENDING',
+            'ADDRESS_CONFIRMED',
+            'CONFIRMED',
+            'PACKING',
+            'OUT_FOR_DELIVERY',
+            'DELIVERED',
+          ];
+    const labels = {
+      'PENDING': 'Order placed',
+      'ADDRESS_CONFIRMED': 'Address confirmed',
+      'CONFIRMED': 'Order confirmed',
+      'PACKING': 'Packing',
+      'OUT_FOR_DELIVERY': 'Out for delivery',
+      'DELIVERED': 'Delivered',
+      'CANCELLED': 'Cancelled',
+    };
+    final currentStatus = order.status == 'PAYMENT_PENDING'
+        ? 'ADDRESS_CONFIRMED'
         : order.status;
     final current = steps.indexOf(currentStatus);
     final effectiveIndex = current < 0 ? 0 : current;
@@ -4097,6 +4104,21 @@ class _TrackingPageState extends State<TrackingPage> {
           Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(error!, style: const TextStyle(color: Colors.red))),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.payments_outlined),
+            title: Text(order.payment == 'COD'
+                ? (order.status == 'DELIVERED'
+                    ? 'Cash on delivery completed'
+                    : 'Cash on Delivery')
+                : (order.status == 'PAYMENT_PENDING'
+                    ? 'UPI payment awaiting confirmation'
+                    : 'UPI payment status: check order details')),
+            subtitle: order.payment == 'COD' && order.status != 'DELIVERED'
+                ? const Text('Pay when your order is delivered.')
+                : null,
+          ),
+        ),
         for (var i = 0; i < steps.length; i++)
           ListTile(
             leading: Icon(
@@ -4106,7 +4128,7 @@ class _TrackingPageState extends State<TrackingPage> {
                 color: i <= effectiveIndex
                     ? const Color(0xFF168447)
                     : Colors.black26),
-            title: Text(steps[i],
+            title: Text(labels[steps[i]] ?? steps[i],
                 style: TextStyle(
                     fontWeight: i == effectiveIndex
                         ? FontWeight.w800
