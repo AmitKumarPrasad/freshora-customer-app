@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'main.dart';
+import 'refreshing_client.dart';
 
 class CustomerApiException implements Exception {
   const CustomerApiException(this.message, {this.statusCode});
@@ -89,7 +90,10 @@ class HttpCustomerRepository {
     required this.token,
     http.Client? client,
     String? baseUrl,
-  })  : _client = client ?? http.Client(),
+    Future<String?> Function()? refreshAccessToken,
+  })  : _client = refreshAccessToken == null
+            ? (client ?? http.Client())
+            : RefreshingClient(client ?? http.Client(), refreshAccessToken),
         _baseUrl = (baseUrl ?? const String.fromEnvironment(
           'API_BASE_URL',
           defaultValue: 'https://talegaon-fresh-ai-backend.onrender.com',
