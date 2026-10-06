@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -95,8 +96,15 @@ class NotificationService {
         }
       }
     } catch (e) {
-      // Silently skip token storage if it fails
+      debugPrint('FCM token retrieval failed: $e');
     }
+  }
+
+  // Retry token acquisition when an authenticated session is available.
+  Future<String?> fetchFcmToken() async {
+    if (Firebase.apps.isEmpty) return null;
+    await _storeFcmToken();
+    return getFcmToken();
   }
 
   // Retrieve stored FCM token
