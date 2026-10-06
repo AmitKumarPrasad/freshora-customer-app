@@ -38,6 +38,8 @@ jobs:
         run: flutter test
       - name: Build APK
         run: flutter build apk --debug
+      - name: Free debug build space
+        run: flutter clean
       - name: Configure Android release signing
         if: env.HAS_ANDROID_SIGNING == 'true'
         working-directory: mobile

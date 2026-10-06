@@ -1973,7 +1973,7 @@ class _HomePageState extends State<HomePage> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: .82),
+                childAspectRatio: .62),
             delegate: SliverChildBuilderDelegate(
                 (context, i) => ProductCard(
                     product: visibleProducts[i],
@@ -2382,7 +2382,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
-                childAspectRatio: .71,
+                childAspectRatio: .58,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, i) => ProductCard(
@@ -2693,30 +2693,42 @@ class ProductCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12, color: _mutedInk)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text('₹${(product.price * (quantity == 0 ? 1 : quantity)).toStringAsFixed(0)}',
-                            style: const TextStyle(
-                                fontSize: 17, fontWeight: FontWeight.w800,
-                                color: _ink)),
-                      ),
-                      if (quantity == 0)
-                        _squareAction(Icons.add, () => onAdd(product), 'Add to cart')
-                      else ...[
-                        InkWell(
-                          onTap: onDecrement,
-                          child: const Icon(Icons.remove, size: 20, color: _brandGreenDark),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 7),
-                          child: Text('$quantity',
-                              style: const TextStyle(fontWeight: FontWeight.w800)),
-                        ),
-                        _squareAction(Icons.add, onIncrement, 'Increase quantity'),
-                      ],
-                    ],
+                  const SizedBox(height: 8),
+                  Text(
+                    '₹${(product.price * (quantity == 0 ? 1 : quantity)).toStringAsFixed(0)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w800, color: _ink),
+                  ),
+                  const SizedBox(height: 7),
+                  SizedBox(
+                    height: 36,
+                    width: double.infinity,
+                    child: quantity == 0
+                        ? Tooltip(
+                            message: 'Add to cart',
+                            child: FilledButton(
+                              onPressed: () => onAdd(product),
+                              style: FilledButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 36),
+                              ),
+                              child: const Text('ADD'),
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _squareAction(Icons.remove, onDecrement,
+                                  'Decrease quantity'),
+                              Text('$quantity',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w800)),
+                              _squareAction(Icons.add, onIncrement,
+                                  'Increase quantity'),
+                            ],
+                          ),
                   ),
                 ],
               ),
@@ -2732,13 +2744,13 @@ class ProductCard extends StatelessWidget {
           onTap: action,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            height: 43,
-            width: 43,
+            height: 36,
+            width: 36,
             decoration: BoxDecoration(
               color: _brandGreen,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: Colors.white, size: 24),
+            child: Icon(icon, color: Colors.white, size: 20),
           ),
         ),
       );
@@ -3284,7 +3296,7 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  String payment = 'UPI';
+  final String payment = 'COD';
   int selectedAddress = 0;
   bool savingAddress = false;
   bool placingOrder = false;
@@ -3320,7 +3332,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _useCurrentLocation() async {
     setState(() => savingAddress = true);
-    final location = await detectCurrentLocationLabel();
+    final location = await detectCurrentLocationAddress();
     if (!mounted) return;
     setState(() => savingAddress = false);
     if (location == null) {
@@ -3329,17 +3341,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
               'Could not detect your location. Enter your address manually instead.')));
       return;
     }
-    final parts = location
-        .split(',')
-        .map((part) => part.trim())
-        .where((part) => part.isNotEmpty)
-        .toList();
     await _addAddress(
         initialAddress: CustomerAddress(
       label: 'Current location',
-      fullAddress: parts.isEmpty ? location : parts.first,
-      city: parts.length > 1 ? parts.last : location,
-      pincode: '',
+      fullAddress: location.address,
+      city: location.city,
+      pincode: location.pincode,
     ));
   }
 
@@ -3407,24 +3414,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              ChoiceChip(
-                label: const Text('UPI'),
-                selected: payment == 'UPI',
-                onSelected: (_) => setState(() => payment = 'UPI'),
+              const ChoiceChip(
+                label: Text('Cash on Delivery'),
+                selected: true,
               ),
-              ChoiceChip(
-                label: const Text('Cash on Delivery'),
-                selected: payment == 'COD',
-                onSelected: (_) => setState(() => payment = 'COD'),
+              const ChoiceChip(
+                label: Text('UPI · Coming soon'),
+                selected: false,
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            payment == 'UPI'
-                ? 'Google Pay / PhonePe / Paytm'
-                : 'Pay in cash when your order is delivered.',
-            style: const TextStyle(color: Colors.black54),
+          const Text(
+            'Pay in cash at delivery. UPI payments will start shortly.',
+            style: TextStyle(color: Colors.black54),
           ),
           SummaryRow(label: 'Total', value: widget.total, bold: true),
           const SizedBox(height: 18),
@@ -4065,20 +4068,27 @@ class _TrackingPageState extends State<TrackingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final paymentComplete = order.status == 'DELIVERED' ||
-        (order.payment == 'UPI' && order.status != 'PAYMENT_PENDING');
-    final paymentStep = paymentComplete ? 'PAYMENT_SUCCESS' : 'PAYMENT_PENDING';
-    final steps = [
-      'PENDING',
-      'ADDRESS_CONFIRMED',
-      paymentStep,
-      'CONFIRMED',
-      'PACKING',
-      'OUT_FOR_DELIVERY',
-      'DELIVERED'
-    ];
-    final currentStatus = order.status == 'PAYMENT_PENDING' && paymentComplete
-        ? paymentStep
+    final steps = order.status == 'CANCELLED'
+        ? ['PENDING', 'CANCELLED']
+        : [
+            'PENDING',
+            'ADDRESS_CONFIRMED',
+            'CONFIRMED',
+            'PACKING',
+            'OUT_FOR_DELIVERY',
+            'DELIVERED',
+          ];
+    const labels = {
+      'PENDING': 'Order placed',
+      'ADDRESS_CONFIRMED': 'Address confirmed',
+      'CONFIRMED': 'Order confirmed',
+      'PACKING': 'Packing',
+      'OUT_FOR_DELIVERY': 'Out for delivery',
+      'DELIVERED': 'Delivered',
+      'CANCELLED': 'Cancelled',
+    };
+    final currentStatus = order.status == 'PAYMENT_PENDING'
+        ? 'ADDRESS_CONFIRMED'
         : order.status;
     final current = steps.indexOf(currentStatus);
     final effectiveIndex = current < 0 ? 0 : current;
@@ -4094,6 +4104,21 @@ class _TrackingPageState extends State<TrackingPage> {
           Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(error!, style: const TextStyle(color: Colors.red))),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.payments_outlined),
+            title: Text(order.payment == 'COD'
+                ? (order.status == 'DELIVERED'
+                    ? 'Cash on delivery completed'
+                    : 'Cash on Delivery')
+                : (order.status == 'PAYMENT_PENDING'
+                    ? 'UPI payment awaiting confirmation'
+                    : 'UPI payment status: check order details')),
+            subtitle: order.payment == 'COD' && order.status != 'DELIVERED'
+                ? const Text('Pay when your order is delivered.')
+                : null,
+          ),
+        ),
         for (var i = 0; i < steps.length; i++)
           ListTile(
             leading: Icon(
@@ -4103,7 +4128,7 @@ class _TrackingPageState extends State<TrackingPage> {
                 color: i <= effectiveIndex
                     ? const Color(0xFF168447)
                     : Colors.black26),
-            title: Text(steps[i],
+            title: Text(labels[steps[i]] ?? steps[i],
                 style: TextStyle(
                     fontWeight: i == effectiveIndex
                         ? FontWeight.w800
@@ -4873,14 +4898,18 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                     const InputDecoration(labelText: 'Label (Home, Work...)')),
             TextField(
                 controller: address,
-                decoration: const InputDecoration(labelText: 'Address')),
+                decoration: const InputDecoration(
+                    labelText: 'House / flat number and street',
+                    helperText: 'Please enter the exact delivery address.')),
             TextField(
                 controller: city,
                 decoration: const InputDecoration(labelText: 'City')),
             TextField(
                 controller: pincode,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'PIN code')),
+                decoration: const InputDecoration(
+                    labelText: 'PIN code',
+                    helperText: 'Confirm the detected PIN code before saving.')),
             TextField(
                 controller: landmark,
                 decoration:
