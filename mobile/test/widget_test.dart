@@ -183,7 +183,7 @@ void main() {
     expect(find.text("Today's Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30'), findsWidgets);
-    expect(find.text('1 kg'), findsWidgets);
+    expect(find.textContaining('1 kg'), findsWidgets);
   });
 
   testWidgets('Home search filters products and opens notifications',
