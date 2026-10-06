@@ -1,9 +1,37 @@
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
-/// Detects the customer's current city/area using device GPS.
-/// Returns null if permission is denied, location services are off, or lookup fails.
-Future<String?> detectCurrentLocationLabel() async {
+class CurrentLocationAddress {
+  const CurrentLocationAddress({
+    required this.label,
+    required this.address,
+    required this.city,
+    required this.pincode,
+  });
+
+  final String label;
+  final String address;
+  final String city;
+  final String pincode;
+}
+
+CurrentLocationAddress addressFromPlacemark(Placemark place) {
+  final area = (place.subLocality ?? '').trim();
+  final city = (place.locality ?? place.administrativeArea ?? '').trim();
+  final street = (place.street ?? '').trim();
+  final rawPostalCode = (place.postalCode ?? '').trim();
+  final pincode = RegExp(r'^\\d{6}$').hasMatch(rawPostalCode) ? rawPostalCode : '';
+  final label = [area, city].where((part) => part.isNotEmpty).toSet().join(', ');
+  return CurrentLocationAddress(
+    label: label.isNotEmpty ? label : street,
+    address: street.isNotEmpty ? street : (area.isNotEmpty ? area : city),
+    city: city,
+    pincode: pincode,
+  );
+}
+
+/// Resolve GPS coordinates to an address. A missing postal code remains editable.
+Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
   try {
     if (!await Geolocator.isLocationServiceEnabled()) return null;
 
@@ -11,7 +39,8 @@ Future<String?> detectCurrentLocationLabel() async {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       return null;
     }
 
@@ -25,15 +54,14 @@ Future<String?> detectCurrentLocationLabel() async {
     }
     if (position == null) return null;
 
-    final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    final placemarks =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
     if (placemarks.isEmpty) return null;
-
-    final place = placemarks.first;
-    final area = place.subLocality?.isNotEmpty == true ? place.subLocality : place.locality;
-    final city = place.locality?.isNotEmpty == true ? place.locality : place.administrativeArea;
-    if (area != null && city != null && area != city) return '$area, $city';
-    return city ?? area;
+    return addressFromPlacemark(placemarks.first);
   } catch (_) {
     return null;
   }
 }
+
+Future<String?> detectCurrentLocationLabel() async =>
+    (await detectCurrentLocationAddress())?.label;
