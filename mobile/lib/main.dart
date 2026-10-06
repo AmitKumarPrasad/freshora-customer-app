@@ -1046,6 +1046,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int tab = 0;
   final cart = <CartItem>[];
+  int _cartRevision = 0;
   List<Product> products = [];
   bool loading = true;
   String? error;
@@ -1065,8 +1066,7 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     customerApi = HttpCustomerRepository(token: widget.session.token ?? '');
-    _loadProducts();
-    _loadCart();
+    _loadProducts().then((_) => _loadCart());
     _loadOrders();
     _loadAddresses();
     _loadFavorites();
@@ -1092,10 +1092,11 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _loadCart() async {
+    final revisionAtStart = _cartRevision;
     if (_useRemoteCustomerApi) {
       try {
         final remote = await customerApi.getCart(products);
-        if (mounted) {
+        if (mounted && _cartRevision == revisionAtStart) {
           setState(() {
             cart
               ..clear()
@@ -1153,7 +1154,7 @@ class _AppShellState extends State<AppShell> {
           quantity.toInt(),
         ));
       }
-      if (mounted)
+      if (mounted && _cartRevision == revisionAtStart)
         setState(() => cart
           ..clear()
           ..addAll(restored));
@@ -1462,12 +1463,27 @@ class _AppShellState extends State<AppShell> {
   }
 
   void add(Product p) {
+    _cartRevision++;
     setState(() {
       final matches = cart.where((x) => x.product.name == p.name);
       if (matches.isEmpty) {
         cart.add(CartItem(p, 1));
       } else {
         matches.first.quantity++;
+      }
+    });
+    _persistCart();
+  }
+
+  void setProductQuantity(Product product, int quantity) {
+    if (quantity < 1) return;
+    _cartRevision++;
+    setState(() {
+      final matches = cart.where((item) => item.product.name == product.name);
+      if (matches.isEmpty) {
+        cart.add(CartItem(product, quantity));
+      } else {
+        matches.first.quantity = quantity;
       }
     });
     _persistCart();
@@ -1494,11 +1510,13 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _incrementCartItem(CartItem item) {
+    _cartRevision++;
     setState(() => item.quantity++);
     _persistCart();
   }
 
   void _decrementCartItem(CartItem item) {
+    _cartRevision++;
     setState(() {
       if (item.quantity > 1) {
         item.quantity--;
@@ -1510,6 +1528,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _removeCartItem(CartItem item) {
+    _cartRevision++;
     setState(() => cart.remove(item));
     _persistCart();
   }
@@ -1520,7 +1539,10 @@ class _AppShellState extends State<AppShell> {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (_) => ProductDetailsPage(product: product, onAdd: add)));
+            builder: (_) => ProductDetailsPage(
+                product: product,
+                initialQuantity: quantityFor(product),
+                onSetQuantity: setProductQuantity)));
   }
 
   @override
@@ -1593,7 +1615,8 @@ class _AppShellState extends State<AppShell> {
                     onToggleFavorite: toggleFavorite,
                     quantityFor: quantityFor,
                     onIncrementProduct: incrementProduct,
-                    onDecrementProduct: decrementProduct))),
+                    onDecrementProduct: decrementProduct,
+                    onSetProductQuantity: setProductQuantity))),
         onViewOrders: () => setState(() => tab = 3),
         onSignOut: _signOut,
         onDeleteAccount: _deleteAccount,
@@ -2647,7 +2670,7 @@ class ProductCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('₹${product.price.toStringAsFixed(0)}',
+                        child: Text('₹${(product.price * (quantity == 0 ? 1 : quantity)).toStringAsFixed(0)}',
                             style: const TextStyle(
                                 fontSize: 17, fontWeight: FontWeight.w800,
                                 color: _ink)),
@@ -2696,24 +2719,32 @@ class ProductCard extends StatelessWidget {
 
 class ProductDetailsPage extends StatefulWidget {
   const ProductDetailsPage(
-      {super.key, required this.product, required this.onAdd});
+      {super.key,
+      required this.product,
+      required this.onSetQuantity,
+      this.initialQuantity = 0});
 
   final Product product;
-  final ValueChanged<Product> onAdd;
+  final int initialQuantity;
+  final void Function(Product, int) onSetQuantity;
 
   @override
   State<ProductDetailsPage> createState() => _ProductDetailsPageState();
 }
 
 class _ProductDetailsPageState extends State<ProductDetailsPage> {
-  int quantity = 1;
+  late int quantity;
+
+  @override
+  void initState() {
+    super.initState();
+    quantity = widget.initialQuantity > 0 ? widget.initialQuantity : 1;
+  }
 
   double get total => widget.product.price * quantity;
 
   void _addToCart() {
-    for (var i = 0; i < quantity; i++) {
-      widget.onAdd(widget.product);
-    }
+    widget.onSetQuantity(widget.product, quantity);
     Navigator.pop(context);
   }
 
@@ -2820,7 +2851,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           child: FilledButton(
             onPressed: _addToCart,
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(58)),
-            child: const Text('Add To Basket'),
+            child: Text('${widget.initialQuantity > 0 ? 'Update' : 'Add To'} Basket • ₹${total.toStringAsFixed(0)}'),
           ),
         ),
       );
@@ -4259,7 +4290,8 @@ class FavoritesPage extends StatelessWidget {
       required this.onToggleFavorite,
       this.quantityFor,
       this.onIncrementProduct,
-      this.onDecrementProduct});
+      this.onDecrementProduct,
+      this.onSetProductQuantity});
 
   final List<Product> products;
   final ValueChanged<Product> onAdd;
@@ -4267,6 +4299,7 @@ class FavoritesPage extends StatelessWidget {
   final int Function(Product)? quantityFor;
   final ValueChanged<Product>? onIncrementProduct;
   final ValueChanged<Product>? onDecrementProduct;
+  final void Function(Product, int)? onSetProductQuantity;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -4301,7 +4334,17 @@ class FavoritesPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                             builder: (_) => ProductDetailsPage(
-                                product: value, onAdd: onAdd))),
+                                product: value,
+                                initialQuantity: quantityFor?.call(value) ?? 0,
+                                onSetQuantity: (product, quantity) {
+                                  if (onSetProductQuantity != null) {
+                                    onSetProductQuantity!(product, quantity);
+                                  } else {
+                                    for (var i = 0; i < quantity; i++) {
+                                      onAdd(product);
+                                    }
+                                  }
+                                }))),
                     isFavorite: true,
                     onToggleFavorite: onToggleFavorite,
                     quantity: quantityFor?.call(product) ?? 0,
