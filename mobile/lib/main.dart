@@ -3296,7 +3296,7 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  String payment = 'UPI';
+  final String payment = 'COD';
   int selectedAddress = 0;
   bool savingAddress = false;
   bool placingOrder = false;
@@ -3414,24 +3414,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              ChoiceChip(
-                label: const Text('UPI'),
-                selected: payment == 'UPI',
-                onSelected: (_) => setState(() => payment = 'UPI'),
+              const ChoiceChip(
+                label: Text('Cash on Delivery'),
+                selected: true,
               ),
-              ChoiceChip(
-                label: const Text('Cash on Delivery'),
-                selected: payment == 'COD',
-                onSelected: (_) => setState(() => payment = 'COD'),
+              const ChoiceChip(
+                label: Text('UPI · Coming soon'),
+                selected: false,
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            payment == 'UPI'
-                ? 'Google Pay / PhonePe / Paytm'
-                : 'Pay in cash when your order is delivered.',
-            style: const TextStyle(color: Colors.black54),
+          const Text(
+            'Pay in cash at delivery. UPI payments will start shortly.',
+            style: TextStyle(color: Colors.black54),
           ),
           SummaryRow(label: 'Total', value: widget.total, bold: true),
           const SizedBox(height: 18),
@@ -4880,14 +4876,18 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                     const InputDecoration(labelText: 'Label (Home, Work...)')),
             TextField(
                 controller: address,
-                decoration: const InputDecoration(labelText: 'Address')),
+                decoration: const InputDecoration(
+                    labelText: 'House / flat number and street',
+                    helperText: 'Please enter the exact delivery address.')),
             TextField(
                 controller: city,
                 decoration: const InputDecoration(labelText: 'City')),
             TextField(
                 controller: pincode,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'PIN code')),
+                decoration: const InputDecoration(
+                    labelText: 'PIN code',
+                    helperText: 'Confirm the detected PIN code before saving.')),
             TextField(
                 controller: landmark,
                 decoration:
