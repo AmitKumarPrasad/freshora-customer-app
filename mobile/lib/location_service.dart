@@ -54,7 +54,7 @@ Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
     } catch (_) {
       return null;
     }
-    if (position.accuracy > 100) return null;
+    if (position == null || position.accuracy > 100) return null;
 
     final placemarks =
         await placemarkFromCoordinates(position.latitude, position.longitude);
