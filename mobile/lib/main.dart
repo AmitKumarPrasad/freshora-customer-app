@@ -841,11 +841,11 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       );
 }
 
-const _brandGreen = Color(0xFF245841);
-const _brandGreenDark = Color(0xFF173B2E);
-const _surfaceTint = Color(0xFFFAF7EF);
-const _ink = Color(0xFF19372B);
-const _mutedInk = Color(0xFF657A6D);
+const _brandGreen = Color(0xFF53B175);
+const _brandGreenDark = Color(0xFF3B9B60);
+const _surfaceTint = Colors.white;
+const _ink = Color(0xFF181725);
+const _mutedInk = Color(0xFF7C7C7C);
 
 ThemeData _buildTheme() {
   final colorScheme = ColorScheme.fromSeed(
@@ -871,7 +871,7 @@ ThemeData _buildTheme() {
       surfaceTintColor: Colors.transparent,
       foregroundColor: _ink,
       elevation: 0,
-      centerTitle: false,
+      centerTitle: true,
       titleTextStyle: TextStyle(
           color: _ink, fontSize: 20, fontWeight: FontWeight.w800),
     ),
@@ -886,8 +886,8 @@ ThemeData _buildTheme() {
         backgroundColor: _brandGreenDark,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(19)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -1546,58 +1546,58 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: SafeArea(child: pages[tab]),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 16,
-                offset: const Offset(0, -4))
-          ],
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE8E8E8))),
         ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: NavigationBar(
-            selectedIndex: tab,
-            onDestinationSelected: (i) => setState(() => tab = i),
-            indicatorColor: const Color(0xFFFFE6D2),
-            backgroundColor: Colors.white,
-            elevation: 0,
-            destinations: [
-              const NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: 'Home'),
-              const NavigationDestination(
-                  icon: Icon(Icons.storefront_outlined),
-                  selectedIcon: Icon(Icons.storefront),
-                  label: 'Products'),
-              NavigationDestination(
-                icon: Badge(
-                    isLabelVisible: count > 0,
-                    label: Text(count.toString()),
-                    child: const Icon(Icons.shopping_cart_outlined)),
-                selectedIcon: const Icon(Icons.shopping_cart),
-                label: 'Cart',
-              ),
-              const NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(Icons.receipt_long),
-                  label: 'Orders'),
-              const NavigationDestination(
-                  icon: Icon(Icons.auto_awesome_outlined),
-                  selectedIcon: Icon(Icons.auto_awesome),
-                  label: 'AI'),
-              const NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: 'Profile'),
-            ],
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 66,
+            child: Row(
+              children: [
+                _navItem(0, Icons.storefront_outlined, Icons.storefront, 'Shop'),
+                _navItem(1, Icons.grid_view_outlined, Icons.grid_view, 'Explore'),
+                _navItem(2, Icons.shopping_cart_outlined, Icons.shopping_cart, 'Cart',
+                    badge: count),
+                _navItem(3, Icons.receipt_long_outlined, Icons.receipt_long, 'Orders'),
+                _navItem(4, Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
+                _navItem(5, Icons.person_outline, Icons.person, 'Account'),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+  Widget _navItem(int index, IconData icon, IconData activeIcon, String label,
+      {int badge = 0}) {
+    final selected = tab == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => tab = index),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Badge(
+              isLabelVisible: badge > 0,
+              label: Text('$badge'),
+              child: Icon(selected ? activeIcon : icon,
+                  color: selected ? _brandGreenDark : _ink, size: 24),
+            ),
+            const SizedBox(height: 5),
+            Text(label,
+                maxLines: 1,
+                style: TextStyle(
+                    color: selected ? _brandGreenDark : _ink,
+                    fontSize: 10,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+
 }
 
 class HomePage extends StatefulWidget {
@@ -2042,56 +2042,86 @@ class _ProductsPageState extends State<ProductsPage> {
 
   void _showFilters() {
     final values = _availableCategories;
+    var selected = category;
     showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Filter products',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 6),
-              const Text('Choose a category to narrow the FRESHORA catalog.',
-                  style: TextStyle(color: Colors.black54)),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: values
-                    .map((value) => ChoiceChip(
-                          label: Text(
-                            value,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => SafeArea(
+          top: false,
+          child: SizedBox(
+            height: MediaQuery.sizeOf(sheetContext).height * .78,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 16, 24, 16),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close),
+                      ),
+                      const Expanded(
+                        child: Text('Filters',
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: category == value
-                                  ? Colors.white
-                                  : Colors.black87,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          selected: category == value,
-                          selectedColor: _brandGreen,
-                          checkmarkColor: Colors.white,
-                          onSelected: (_) {
-                            setSheetState(() => category = value);
-                            setState(() {});
-                          },
-                        ))
-                    .toList(),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Apply filter'),
+                                fontSize: 20, fontWeight: FontWeight.w800)),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(25, 24, 25, 10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF7F7F7),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                    ),
+                    child: ListView(
+                      children: [
+                        const Text('Categories',
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 12),
+                        ...values.map((value) => CheckboxListTile(
+                          value: selected == value,
+                          activeColor: _brandGreen,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(value,
+                              style: TextStyle(
+                                color: selected == value ? _brandGreenDark : _ink,
+                                fontWeight: selected == value
+                                    ? FontWeight.w700 : FontWeight.w500,
+                              )),
+                          onChanged: (_) => setSheetState(() => selected = value),
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(58)),
+                      onPressed: () {
+                        setState(() => category = selected);
+                        Navigator.pop(sheetContext);
+                      },
+                      child: const Text('Apply Filter'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2118,13 +2148,13 @@ class _ProductsPageState extends State<ProductsPage> {
           pinned: true,
           backgroundColor: _surfaceTint,
           surfaceTintColor: Colors.transparent,
-          title: const Text('Products'),
+          title: Text(category == 'All' ? 'Explore' : category),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: OutlinedButton.icon(
                 onPressed: _showFilters,
-                icon: const Icon(Icons.tune_rounded, size: 18),
+                icon: const Icon(Icons.tune_rounded, size: 22),
                 label: const Text('Filter'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _brandGreenDark,
@@ -2246,7 +2276,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
-                childAspectRatio: .70,
+                childAspectRatio: .71,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, i) => ProductCard(
@@ -2509,12 +2539,7 @@ class ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4)),
-          ],
+          border: Border.all(color: const Color(0xFFE2E2E2)),
         ),
         child: Material(
           color: Colors.transparent,
@@ -2522,142 +2547,92 @@ class ProductCard extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () => onOpen(product),
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Stack(
                       children: [
-                        Expanded(
-                            child: Stack(children: [
-                          Positioned.fill(
-                              child: ProductImage(product: product)),
-                          Positioned(
-                            top: 6,
-                            left: 6,
-                            child: Container(
-                              constraints: const BoxConstraints(maxWidth: 120),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                  color: const Color(0xFF168447),
-                                  borderRadius: BorderRadius.circular(20)),
-                              child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                        _isFreshCategory(product.category)
-                                            ? Icons.eco
-                                            : Icons.inventory_2_outlined,
-                                        size: 11,
-                                        color: Colors.white),
-                                    const SizedBox(width: 3),
-                                    Flexible(
-                                      child: Text(
-                                        product.category == 'Other'
-                                            ? 'Product'
-                                            : product.category,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800),
-                                      ),
-                                    ),
-                                  ]),
-                            ),
+                        Positioned.fill(child: ProductImage(product: product)),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: IconButton(
+                            tooltip: isFavorite
+                                ? 'Remove from favorites'
+                                : 'Add to favorites',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => onToggleFavorite(product),
+                            icon: Icon(isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                                size: 19,
+                                color: isFavorite ? _brandGreenDark : _mutedInk),
                           ),
-                        ])),
-                        const SizedBox(height: 10),
-                        Text(product.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: _ink,
-                                fontWeight: FontWeight.w800, fontSize: 15)),
-                        const SizedBox(height: 3),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text('₹${product.price.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                    color: _brandGreenDark,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 17)),
-                            const SizedBox(width: 5),
-                            Flexible(
-                              child: Text('per ${product.unit}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: _mutedInk, fontSize: 12,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                          ],
                         ),
-                        if (product.mrp != null && product.mrp! > product.price)
-                          Text(
-                            'MRP ₹${product.mrp!.toStringAsFixed(0)}  Save ₹${(product.mrp! - product.price).toStringAsFixed(0)}',
-                            style: const TextStyle(
-                                color: Colors.black54, fontSize: 12),
-                          ),
-                        const SizedBox(height: 8),
-                        if (quantity == 0)
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              style: FilledButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30))),
-                              onPressed: () => onAdd(product),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Add'),
-                            ),
-                          )
-                        else
-                          Container(
-                            height: 42,
-                            decoration: BoxDecoration(
-                                color: const Color(0xFFEAF6EA),
-                                borderRadius: BorderRadius.circular(30)),
-                            child: Row(children: [
-                              IconButton(
-                                  onPressed: onDecrement,
-                                  icon: const Icon(Icons.remove, size: 18),
-                                  color: _brandGreenDark,
-                                  tooltip: 'Decrease quantity'),
-                              Expanded(
-                                  child: Text(
-                                      '$quantity  •  ₹${(product.price * quantity).toStringAsFixed(0)}',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          color: _brandGreenDark))),
-                              IconButton(
-                                  onPressed: onIncrement,
-                                  icon: const Icon(Icons.add, size: 18),
-                                  color: _brandGreenDark,
-                                  tooltip: 'Increase quantity'),
-                            ]),
-                          ),
-                      ]),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: IconButton.filledTonal(
-                    tooltip: isFavorite
-                        ? 'Remove from favorites'
-                        : 'Add to favorites',
-                    onPressed: () => onToggleFavorite(product),
-                    icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 9),
+                  Text(product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w800,
+                          color: _ink)),
+                  const SizedBox(height: 4),
+                  Text(product.unit,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: _mutedInk)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('₹${product.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                fontSize: 17, fontWeight: FontWeight.w800,
+                                color: _ink)),
+                      ),
+                      if (quantity == 0)
+                        _squareAction(Icons.add, () => onAdd(product), 'Add to cart')
+                      else ...[
+                        InkWell(
+                          onTap: onDecrement,
+                          child: const Icon(Icons.remove, size: 20, color: _brandGreenDark),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 7),
+                          child: Text('$quantity',
+                              style: const TextStyle(fontWeight: FontWeight.w800)),
+                        ),
+                        _squareAction(Icons.add, onIncrement, 'Increase quantity'),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
+          ),
+        ),
+      );
+
+  Widget _squareAction(IconData icon, VoidCallback? action, String tooltip) =>
+      Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: action,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            height: 43,
+            width: 43,
+            decoration: BoxDecoration(
+              color: _brandGreen,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
         ),
       );
@@ -2688,91 +2663,109 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Product Details')),
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const SizedBox.shrink(),
+          actions: [
+            IconButton(
+              tooltip: 'Share product',
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: widget.product.name));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Product name copied')));
+              },
+              icon: const Icon(Icons.ios_share_outlined),
+            ),
+          ],
+        ),
         body: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           children: [
-            SizedBox(
-              height: 260,
-              width: double.infinity,
+            Container(
+              height: 290,
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8F8F8),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
+              ),
               child: ProductImage(
-                  product: widget.product, size: 120, borderRadius: 24),
-            ),
-            const SizedBox(height: 22),
-            Text(widget.product.name,
-                style:
-                    const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 6),
-            Text(
-                '₹' +
-                    widget.product.price.toStringAsFixed(0) +
-                    ' / ' +
-                    widget.product.unit,
-                style: const TextStyle(
-                    color: Color(0xFF168447),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
-            if (widget.product.mrp != null &&
-                widget.product.mrp! > widget.product.price)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'MRP ₹${widget.product.mrp!.toStringAsFixed(0)}  |  You save ₹${(widget.product.mrp! - widget.product.price).toStringAsFixed(0)}',
-                  style: const TextStyle(
-                      color: Colors.black54, fontWeight: FontWeight.w600),
-                ),
-              ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Chip(
-                avatar: Icon(
-                    _isFreshCategory(widget.product.category)
-                        ? Icons.eco_outlined
-                        : Icons.inventory_2_outlined,
-                    size: 17),
-                label: Text(widget.product.category == 'Other'
-                    ? 'Product'
-                    : widget.product.category),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _isFreshCategory(widget.product.category)
-                  ? 'Freshly sourced and available for today\'s delivery.'
-                  : 'Available from the FRESHORA daily-needs catalog for convenient home delivery.',
-              style: const TextStyle(color: Colors.black54, fontSize: 16),
+                  product: widget.product, size: 160, borderRadius: 24),
             ),
             const SizedBox(height: 24),
-            const Text('Quantity',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 10),
+            Text(widget.product.name,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(widget.product.unit,
+                style: const TextStyle(color: _mutedInk, fontSize: 16)),
+            const SizedBox(height: 20),
             Row(
               children: [
-                IconButton.filledTonal(
-                    onPressed:
-                        quantity > 1 ? () => setState(() => quantity--) : null,
-                    icon: const Icon(Icons.remove)),
-                Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 22),
-                    child: Text(quantity.toString(),
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w900))),
-                IconButton.filledTonal(
-                    onPressed: () => setState(() => quantity++),
-                    icon: const Icon(Icons.add)),
+                IconButton(
+                  onPressed: quantity > 1 ? () => setState(() => quantity--) : null,
+                  icon: const Icon(Icons.remove, color: _mutedInk),
+                ),
+                Container(
+                  width: 46,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE2E2E2)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text('$quantity',
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                ),
+                IconButton(
+                  onPressed: () => setState(() => quantity++),
+                  icon: const Icon(Icons.add, color: _brandGreenDark),
+                ),
                 const Spacer(),
-                Text('₹' + total.toStringAsFixed(0),
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w900)),
+                Text('₹${total.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800)),
               ],
             ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-                onPressed: _addToCart,
-                icon: const Icon(Icons.shopping_cart_outlined),
-                label: Text('Add ' + quantity.toString() + ' to Cart')),
+            if (widget.product.mrp != null &&
+                widget.product.mrp! > widget.product.price)
+              Text('MRP ₹${widget.product.mrp!.toStringAsFixed(0)}',
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                      color: _mutedInk, decoration: TextDecoration.lineThrough)),
+            const SizedBox(height: 26),
+            const Divider(),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              initiallyExpanded: true,
+              title: const Text('Product Detail',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: _ink)),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: Text(
+                    _isFreshCategory(widget.product.category)
+                        ? 'Freshly sourced for your daily groceries.'
+                        : 'Available from the FRESHORA daily-needs catalog.',
+                    style: const TextStyle(color: _mutedInk),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Category',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
+              trailing: Text(widget.product.category, style: const TextStyle(color: _mutedInk)),
+            ),
+            const Divider(),
           ],
+        ),
+        bottomNavigationBar: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(24, 10, 24, 18),
+          child: FilledButton(
+            onPressed: _addToCart,
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(58)),
+            child: const Text('Add To Basket'),
+          ),
         ),
       );
 }
@@ -2870,110 +2863,196 @@ class _CartPageState extends State<CartPage> {
     super.dispose();
   }
 
+  void _openCheckout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CheckoutPage(
+          total: subtotal + (subtotal >= 199 ? 20 : 0) - discount,
+          addresses: widget.addresses,
+          onOrderPlaced: widget.onOrderPlaced,
+          onContinueShopping: widget.onContinueShopping,
+          api: widget.api,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.cart.isEmpty) {
-      return const Center(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.shopping_cart_outlined, size: 72, color: Colors.black26),
-        SizedBox(height: 12),
-        Text('Your cart is empty',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-        Text('Add fresh products to get started.'),
-      ]));
-    }
     final delivery = subtotal >= 199 ? 20.0 : 0.0;
     final total = subtotal + delivery - discount;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
+    return Column(
       children: [
-        const Text('My Cart',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-        if (widget.syncError != null)
-          Card(
-            color: Theme.of(context).colorScheme.errorContainer,
-            child: ListTile(
-              leading: Icon(Icons.cloud_off,
-                  color: Theme.of(context).colorScheme.onErrorContainer),
-              title: const Text('Cart sync failed'),
-              subtitle: Text(widget.syncError!),
-              trailing: TextButton(
-                  onPressed: widget.onRetrySync, child: const Text('Retry')),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 19),
+          child: Text('My Cart',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: widget.cart.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.shopping_cart_outlined,
+                          size: 64, color: _brandGreen),
+                      SizedBox(height: 18),
+                      Text('Your cart is empty',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                      SizedBox(height: 8),
+                      Text('Add fresh products to get started.'),
+                    ],
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  children: [
+                    if (widget.syncError != null)
+                      ListTile(
+                        leading: const Icon(Icons.cloud_off, color: Colors.red),
+                        title: const Text('Cart sync failed'),
+                        subtitle: Text(widget.syncError!),
+                        trailing: TextButton(
+                          onPressed: widget.onRetrySync,
+                          child: const Text('Retry'),
+                        ),
+                      ),
+                    ...widget.cart.map((item) => Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 85,
+                                height: 90,
+                                child: ProductImage(
+                                    product: item.product, size: 52,
+                                    borderRadius: 12),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item.product.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontSize: 16, fontWeight: FontWeight.w800)),
+                                    const SizedBox(height: 3),
+                                    Text(item.product.unit,
+                                        style: const TextStyle(color: _mutedInk)),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        _quantityAction(Icons.remove,
+                                            () => widget.onDecrement(item)),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                          child: Text('${item.quantity}',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w700)),
+                                        ),
+                                        _quantityAction(Icons.add,
+                                            () => widget.onIncrement(item)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    onPressed: () => widget.onRemove(item),
+                                    tooltip: 'Remove',
+                                    icon: const Icon(Icons.close, color: _mutedInk),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text('₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800, fontSize: 16)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1),
+                      ],
+                    )),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _promoController,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: InputDecoration(
+                            labelText: 'Promo code',
+                            errorText: _promoError,
+                            suffixIcon: _appliedCode != null
+                                ? const Icon(Icons.check_circle, color: _brandGreen)
+                                : null,
+                          ),
+                          onSubmitted: (_) => _applyPromo(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(onPressed: _applyPromo, child: const Text('Apply')),
+                    ]),
+                    const SizedBox(height: 14),
+                    SummaryRow(label: 'Subtotal', value: subtotal),
+                    SummaryRow(label: 'Delivery Fee', value: delivery),
+                    if (discount > 0)
+                      SummaryRow(label: 'Discount ($_appliedCode)', value: -discount),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+        ),
+        if (widget.cart.isNotEmpty)
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(22, 8, 22, 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: widget.syncError == null ? _openCheckout : null,
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(58)),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text('Go to Checkout',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 17)),
+                    ),
+                    Text('₹${total.toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
             ),
           ),
-        if (widget.syncError != null) const SizedBox(height: 10),
-        ...widget.cart.map((item) => Card(
-              elevation: 0,
-              child: ListTile(
-                leading: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: ProductImage(
-                        product: item.product, size: 26, borderRadius: 10)),
-                title: Text(item.product.name,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('₹' +
-                    item.product.price.toStringAsFixed(0) +
-                    ' / ' +
-                    item.product.unit),
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  IconButton(
-                      onPressed: () => widget.onDecrement(item),
-                      icon: const Icon(Icons.remove_circle_outline)),
-                  Text(item.quantity.toString(),
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  IconButton(
-                      onPressed: () => widget.onIncrement(item),
-                      icon: const Icon(Icons.add_circle_outline)),
-                  IconButton(
-                      onPressed: () => widget.onRemove(item),
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Remove'),
-                ]),
-              ),
-            )),
-        const SizedBox(height: 16),
-        Row(children: [
-          Expanded(
-            child: TextField(
-              controller: _promoController,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                labelText: 'Promo code',
-                errorText: _promoError,
-                suffixIcon: _appliedCode != null
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : null,
-              ),
-              onSubmitted: (_) => _applyPromo(),
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton.tonal(
-              onPressed: _applyPromo, child: const Text('Apply')),
-        ]),
-        const SizedBox(height: 16),
-        SummaryRow(label: 'Subtotal', value: subtotal),
-        SummaryRow(label: 'Delivery Fee', value: delivery),
-        if (discount > 0)
-          SummaryRow(label: 'Discount ($_appliedCode)', value: -discount),
-        const Divider(height: 28),
-        SummaryRow(label: 'Total', value: total, bold: true),
-        const SizedBox(height: 18),
-        FilledButton(
-            onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => CheckoutPage(
-                        total: total,
-                        addresses: widget.addresses,
-                        onOrderPlaced: widget.onOrderPlaced,
-                        onContinueShopping: widget.onContinueShopping,
-                        api: widget.api))),
-            child: const Text('Proceed to Checkout')),
       ],
     );
   }
+
+  Widget _quantityAction(IconData icon, VoidCallback action) => InkWell(
+        onTap: action,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          height: 38,
+          width: 38,
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE2E2E2)),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Icon(icon, size: 20, color: _brandGreenDark),
+        ),
+      );
 }
 
 class SummaryRow extends StatelessWidget {
@@ -3078,7 +3157,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Checkout')),
+        appBar: AppBar(title: const Text('Checkout'), centerTitle: true),
         body: ListView(padding: const EdgeInsets.all(20), children: [
           const Text('Delivery Address',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
@@ -3232,51 +3311,84 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Center(
-            child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(
-                paymentPending
-                    ? Icons.payment
-                    : order.status == 'CANCELLED'
-                        ? Icons.cancel_outlined
-                        : Icons.check_circle,
-                size: 56,
-                color: const Color(0xFF168447)),
-            const SizedBox(height: 22),
-            Text(heading,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 10),
-            Text(
-                paymentPending
-                    ? 'Complete your UPI payment to confirm the order.'
-                    : order.status == 'CANCELLED'
-                        ? 'This order has been cancelled.'
-                        : 'Thank you for shopping with FRESHORA.',
-                textAlign: TextAlign.center),
-            const SizedBox(height: 26),
-            Card(
-                child: ListTile(
-                    title: const Text('Order ID'),
-                    subtitle: Text('#' + order.id),
-                    trailing: Text('₹' + order.total.toStringAsFixed(0)))),
-            OrderPaymentActions(
-                order: order,
-                api: widget.api,
-                onUpdated: (updated) => setState(() => order = updated)),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () {
-                widget.onContinueShopping();
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-              child: const Text('Continue Shopping'),
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 32, 28, 20),
+            child: Column(
+              children: [
+                const Spacer(),
+                Container(
+                  width: 145,
+                  height: 145,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEAF7EE),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    paymentPending
+                        ? Icons.payment
+                        : order.status == 'CANCELLED'
+                            ? Icons.cancel_outlined
+                            : Icons.check_circle_outline,
+                    size: 86,
+                    color: _brandGreen,
+                  ),
+                ),
+                const SizedBox(height: 35),
+                Text(heading,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 26, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 12),
+                Text(
+                  paymentPending
+                      ? 'Complete your UPI payment to confirm the order.'
+                      : order.status == 'CANCELLED'
+                          ? 'This order has been cancelled.'
+                          : 'Your items have been placed and are on their way to being processed.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _mutedInk, fontSize: 15),
+                ),
+                const SizedBox(height: 20),
+                Text('Order #${order.id} • ₹${order.total.toStringAsFixed(0)}',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                const Spacer(),
+                OrderPaymentActions(
+                  order: order,
+                  api: widget.api,
+                  onUpdated: (updated) => setState(() => order = updated),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderDetailsPage(
+                            order: order, api: widget.api),
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(58)),
+                    child: const Text('Track Order'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    widget.onContinueShopping();
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                  child: const Text('Back to home',
+                      style: TextStyle(color: _ink,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ],
             ),
-          ]),
-        )),
+          ),
+        ),
       );
 }
 
@@ -4335,197 +4447,130 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
         children: [
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [Color(0xFF0B5B2C), Color(0xFF168B45)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight),
-              ),
-              child: Row(
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
+          InkWell(
+            onTap: _showPhotoOptions,
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: const Color(0xFFEAF6EC),
+                  backgroundImage: _profileImage,
+                  child: _profileImage == null
+                      ? const Icon(Icons.person, size: 32, color: _brandGreenDark)
+                      : null,
+                ),
+                const SizedBox(width: 17),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 42,
-                        backgroundColor: Colors.white.withValues(alpha: .2),
-                        backgroundImage: _profileImage,
-                        child: _profileImage == null
-                            ? const Icon(Icons.person,
-                                size: 42, color: Colors.white)
-                            : null,
-                      ),
-                      Positioned(
-                        right: -3,
-                        bottom: -3,
-                        child: Material(
-                          color: Colors.white,
-                          shape: const CircleBorder(),
-                          child: InkWell(
-                            onTap: _showPhotoOptions,
-                            customBorder: const CircleBorder(),
-                            child: const Padding(
-                                padding: EdgeInsets.all(8),
-                                child: Icon(Icons.camera_alt_outlined,
-                                    size: 18, color: Color(0xFF0B5B2C))),
-                          ),
+                      Row(children: [
+                        Flexible(
+                          child: Text(widget.session.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 19)),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.edit_outlined,
+                            size: 17, color: _brandGreenDark),
+                      ]),
+                      const SizedBox(height: 3),
+                      Text(widget.session.phone,
+                          style: const TextStyle(color: _mutedInk)),
                     ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          const FreshoraLogo(size: 28),
-                          const SizedBox(width: 8),
-                          Text('FRESHORA',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.2))
-                        ]),
-                        const SizedBox(height: 12),
-                        Text(widget.session.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 3),
-                        Text(widget.session.phone,
-                            style: const TextStyle(color: Colors.white70)),
-                        const SizedBox(height: 4),
-                        const Text('Customer profile',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.account_circle_outlined,
-                  color: Color(0xFF0B5B2C)),
-              title: const Text('Profile photo',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text(_profileImage == null
-                  ? 'Add a photo to personalize your account'
-                  : 'Your photo is saved on this device'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _showPhotoOptions,
+          const SizedBox(height: 24),
+          const Divider(height: 1),
+          _accountRow(Icons.shopping_bag_outlined, 'Orders', widget.onViewOrders),
+          _accountRow(Icons.person_outline, 'My Details', _showPhotoOptions),
+          _accountRow(Icons.location_on_outlined, 'Delivery Address',
+              widget.onManageAddresses),
+          _accountRow(Icons.payment_outlined, 'Payment Methods',
+              () => _openMenu(context, 'Payment Methods')),
+          _accountRow(Icons.local_offer_outlined, 'Promo Code',
+              () => _showReferral(context)),
+          _accountRow(Icons.notifications_none_outlined, 'Notifications',
+              () => _openMenu(context, 'Notifications')),
+          _accountRow(Icons.help_outline, 'Help',
+              () => _openMenu(context, 'Help & Support')),
+          _accountRow(Icons.info_outline, 'About',
+              () => _openMenu(context, 'About FRESHORA')),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: widget.onSignOut,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFF2F3F2),
+              foregroundColor: _brandGreenDark,
+              minimumSize: const Size.fromHeight(58),
             ),
+            icon: const Icon(Icons.logout),
+            label: const Text('Log Out'),
           ),
-          const SizedBox(height: 10),
-          Card(
-            color: const Color(0xFFEAF6EA),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: const [
-                      Icon(Icons.card_giftcard, color: Color(0xFF0B5B2C)),
-                      SizedBox(width: 8),
-                      Text('Refer & Earn',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w800, fontSize: 16)),
-                    ]),
-                    const SizedBox(height: 6),
-                    const Text(
-                        'Share FRESHORA with friends and family. They get a discount, you get rewarded.'),
-                    const SizedBox(height: 14),
-                    Row(children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: const Color(0xFF0B5B2C),
-                                style: BorderStyle.solid),
-                          ),
-                          child: Text(_referralCode,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.2)),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                          onPressed: () => _copyReferralCode(context),
-                          icon: const Icon(Icons.copy),
-                          tooltip: 'Copy code'),
-                    ]),
-                    const SizedBox(height: 10),
-                    FilledButton.icon(
-                      onPressed: () => _shareReferralCode(context),
-                      icon: const Icon(Icons.share),
-                      label: const Text('Invite friends'),
-                    ),
-                  ]),
-            ),
+          const SizedBox(height: 18),
+          TextButton.icon(
+            onPressed: widget.onDeleteAccount == null ? null : _confirmDeleteAccount,
+            icon: const Icon(Icons.delete_forever_outlined, size: 18),
+            label: const Text('Delete account'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
           ),
-          const SizedBox(height: 14),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.favorite_border),
-              title: const Text('My Favorites'),
-              subtitle: const Text('View your saved products'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: widget.onManageFavorites,
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.location_on_outlined),
-              title: const Text('My Addresses'),
-              subtitle: Text(widget.addresses.isEmpty
-                  ? 'Add a delivery address'
-                  : '${widget.addresses.length} saved address${widget.addresses.length == 1 ? '' : 'es'}'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: widget.onManageAddresses,
-            ),
-          ),
-          ...[
-            'My Orders',
-            'Payment Methods',
-            'Notifications',
-            'Help & Support',
-            'About FRESHORA'
-          ].map((x) => Card(
-                  child: ListTile(
-                title: Text(x),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _openMenu(context, x),
-              ))),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-              onPressed: widget.onDeleteAccount == null ? null : _confirmDeleteAccount,
-              icon: const Icon(Icons.delete_forever_outlined, color: Colors.red),
-              label: const Text('Delete account', style: TextStyle(color: Colors.red))), 
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-              onPressed: widget.onSignOut,
-              icon: const Icon(Icons.logout),
-              label: const Text('Sign out')),
         ],
       );
+
+  Widget _accountRow(IconData icon, String label, VoidCallback action) =>
+      Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(vertical: 7),
+            leading: Icon(icon, color: _ink, size: 25),
+            title: Text(label,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w700)),
+            trailing: const Icon(Icons.chevron_right, color: _ink),
+            onTap: action,
+          ),
+          const Divider(height: 1),
+        ],
+      );
+
+  void _showReferral(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 6, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Your referral code',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              Text(_referralCode,
+                  style: const TextStyle(fontSize: 22, color: _brandGreenDark)),
+              const SizedBox(height: 14),
+              FilledButton(
+                onPressed: () => _copyReferralCode(context),
+                child: const Text('Copy code'),
+              ),
+              TextButton(
+                onPressed: () => _shareReferralCode(context),
+                child: const Text('Invite friends'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AddressFormDialog extends StatefulWidget {
