@@ -33,7 +33,6 @@ class NotificationService {
       alert: true,
       announcement: false,
       badge: true,
-      carryForward: true,
       critical: false,
       provisional: false,
       sound: true,
