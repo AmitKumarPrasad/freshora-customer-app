@@ -142,8 +142,7 @@ class HttpAuthRepository implements AuthRepository {
   }
 
   Future<void> uploadFcmToken(String fcmToken, String accessToken) async {
-    try {
-      final response = await _client.put(
+    final response = await _client.put(
         Uri.parse('$_baseUrl/customers/me/fcm-token'),
         headers: {
           'Accept': 'application/json',
@@ -152,10 +151,7 @@ class HttpAuthRepository implements AuthRepository {
         },
         body: jsonEncode({'fcm_token': fcmToken}),
       );
-      _ensureSuccess(response, fallback: 'Failed to upload FCM token.');
-    } catch (e) {
-      // Non-blocking; continue even if upload fails
-    }
+    _ensureSuccess(response, fallback: 'Failed to upload FCM token.');
   }
 
   Future<void> _clear() async {
