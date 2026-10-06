@@ -71,7 +71,6 @@ class NotificationService {
 
   // Handle FCM token refresh
   Future<void> _onTokenRefresh(String token) async {
-    print('FCM token refreshed: $token');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('fcm_token', token);
     
@@ -88,7 +87,6 @@ class NotificationService {
       if (token != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', token);
-        print('FCM Token stored: $token');
         
         // Notify listener to upload token to backend
         if (onFcmTokenReady != null) {
@@ -96,7 +94,6 @@ class NotificationService {
         }
       }
     } catch (e) {
-      print('Error getting FCM token: $e');
     }
   }
 
@@ -106,7 +103,6 @@ class NotificationService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString('fcm_token');
     } catch (e) {
-      print('Error retrieving FCM token: $e');
       return null;
     }
   }
@@ -118,13 +114,11 @@ class NotificationService {
       await Future.delayed(const Duration(milliseconds: 500));
       await _storeFcmToken();
     } catch (e) {
-      print('Error refreshing FCM token: $e');
     }
   }
 
   // Handle foreground messages (app is open)
   void _handleForegroundMessage(RemoteMessage message) {
-    print('Foreground message: ${message.notification?.title}');
     final notification = message.notification;
     if (notification != null) {
       _showNotification(notification.title ?? '', notification.body ?? '', message.data);
@@ -133,14 +127,12 @@ class NotificationService {
 
   // Handle message when app is opened from notification
   void _handleMessageOpenedApp(RemoteMessage message) {
-    print('Message opened from notification: ${message.notification?.title}');
     // Handle navigation based on message data
     _handleNotificationAction(message.data);
   }
 
   // Handle local notification tap
   void _handleNotificationTap(NotificationResponse response) {
-    print('Notification tapped: ${response.payload}');
     // Handle navigation based on payload
     if (response.payload != null) {
       _handleNotificationAction({'orderId': response.payload});
@@ -189,7 +181,6 @@ class NotificationService {
   void _handleNotificationAction(Map<String, dynamic> data) {
     final orderId = data['orderId'];
     if (orderId != null) {
-      print('Navigating to order: $orderId');
       // Navigation will be handled by the app's navigation system
       // based on app state and routing
     }
