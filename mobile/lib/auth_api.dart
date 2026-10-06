@@ -141,6 +141,23 @@ class HttpAuthRepository implements AuthRepository {
     await _clear();
   }
 
+  Future<void> uploadFcmToken(String fcmToken, String accessToken) async {
+    try {
+      final response = await _client.put(
+        Uri.parse('$_baseUrl/customers/me/fcm-token'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode({'fcm_token': fcmToken}),
+      );
+      _ensureSuccess(response, fallback: 'Failed to upload FCM token.');
+    } catch (e) {
+      // Non-blocking; continue even if upload fails
+    }
+  }
+
   Future<void> _clear() async {
     for (final key in ['talegaon_fresh_access_token','talegaon_fresh_refresh_token','talegaon_fresh_phone','talegaon_fresh_name']) {
       await _storage.delete(key: key);

@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'auth_api.dart';
 import 'ai_assistant.dart';
@@ -17,9 +18,18 @@ import 'admin_ui.dart';
 import 'widgets/freshora_logo.dart';
 import 'landing_page.dart';
 import 'location_service.dart';
+import 'notification_service.dart';
 
-void main() =>
-    runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+    await NotificationService().initialize();
+  } catch (e) {
+    // Continue without notifications if Firebase fails
+  }
+  runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
+}
 
 AuthRepository _createAuthRepository() =>
     const String.fromEnvironment('AUTH_MODE', defaultValue: 'remote') ==
@@ -350,6 +360,20 @@ class _LoginPageState extends State<LoginPage> {
               .register(normalized, pin.text, name.text.trim())
           : await widget.authRepository.login(normalized, pin.text);
       if (!mounted) return;
+      
+      // Upload FCM token to backend after successful authentication
+      if (widget.authRepository is HttpAuthRepository && session.token != null) {
+        try {
+          final fcmToken = await NotificationService().getFcmToken();
+          if (fcmToken != null && fcmToken.isNotEmpty) {
+            await (widget.authRepository as HttpAuthRepository)
+                .uploadFcmToken(fcmToken, session.token!);
+          }
+        } catch (e) {
+          // Non-blocking; continue with authentication
+        }
+      }
+      
       widget.onAuthenticated(session);
     } on AuthException catch (e) {
       if (mounted)

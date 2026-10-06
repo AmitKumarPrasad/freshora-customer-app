@@ -1,0 +1,602 @@
+[
+    {
+        "id": 1,
+        "name": "Tomato (Fresh)",
+        "unit": "1 kg",
+        "price": 40,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40043-2_3-tomato-local-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 2,
+        "name": "Potato (Premium)",
+        "unit": "1 kg",
+        "price": 35,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40042-2_3-potato-white-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 3,
+        "name": "Onion (Red)",
+        "unit": "1 kg",
+        "price": 45,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40044-2_3-onion-red-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 4,
+        "name": "Carrot (Orange)",
+        "unit": "500 g",
+        "price": 50,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40045-2_3-carrot-orange-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 5,
+        "name": "Capsicum (Red)",
+        "unit": "500 g",
+        "price": 75,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40046-2_3-capsicum-red-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 6,
+        "name": "Cabbage (Green)",
+        "unit": "1 pc",
+        "price": 28,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40047-2_3-cabbage-green-whole/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 7,
+        "name": "Cauliflower (Fresh)",
+        "unit": "1 pc",
+        "price": 45,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40048-2_3-cauliflower-whole/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 8,
+        "name": "Ladyfinger (Fresh)",
+        "unit": "500 g",
+        "price": 65,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40049-2_3-ladyfinger-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 9,
+        "name": "Green Beans",
+        "unit": "500 g",
+        "price": 85,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40050-2_3-green-beans-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 10,
+        "name": "Spinach (Palak)",
+        "unit": "1 bunch",
+        "price": 35,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40051-2_3-spinach-bunch/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 11,
+        "name": "Coriander (Fresh)",
+        "unit": "1 bunch",
+        "price": 25,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40052-2_3-coriander-bunch/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 12,
+        "name": "Green Chilli",
+        "unit": "250 g",
+        "price": 35,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40053-2_3-green-chilli-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 13,
+        "name": "Ginger (Fresh)",
+        "unit": "250 g",
+        "price": 50,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40054-2_3-ginger-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 14,
+        "name": "Garlic (Fresh)",
+        "unit": "250 g",
+        "price": 60,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40055-2_3-garlic-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 15,
+        "name": "Cucumber (Fresh)",
+        "unit": "500 g",
+        "price": 30,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40056-2_3-cucumber-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 16,
+        "name": "Broccoli (Fresh)",
+        "unit": "1 pc",
+        "price": 80,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40057-2_3-broccoli-whole/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 17,
+        "name": "Bottle Gourd",
+        "unit": "1 pc",
+        "price": 25,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40058-2_3-bottle-gourd-whole/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 18,
+        "name": "Bitter Gourd",
+        "unit": "500 g",
+        "price": 55,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40059-2_3-bitter-gourd-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 19,
+        "name": "Peas (Fresh)",
+        "unit": "500 g",
+        "price": 60,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40060-2_3-peas-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 20,
+        "name": "Beet (Fresh)",
+        "unit": "500 g",
+        "price": 40,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40061-2_3-beet-loose/260x260-c0bab6ba.jpg",
+        "category": "Vegetables"
+    },
+    {
+        "id": 21,
+        "name": "Banana (Yellow)",
+        "unit": "1 dozen",
+        "price": 50,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40021-2_3-banana-yelakki-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 22,
+        "name": "Apple (Red)",
+        "unit": "1 kg",
+        "price": 150,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40022-2_3-apple-red-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 23,
+        "name": "Orange (Fresh)",
+        "unit": "1 kg",
+        "price": 80,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40023-2_3-orange-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 24,
+        "name": "Grapes (Green)",
+        "unit": "500 g",
+        "price": 100,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40024-2_3-grapes-green-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 25,
+        "name": "Pomegranate (Fresh)",
+        "unit": "1 kg",
+        "price": 130,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40025-2_3-pomegranate-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 26,
+        "name": "Papaya (Fresh)",
+        "unit": "1 pc",
+        "price": 60,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40026-2_3-papaya-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 27,
+        "name": "Mango (Seasonal)",
+        "unit": "1 kg",
+        "price": 120,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40027-2_3-mango-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 28,
+        "name": "Guava (Fresh)",
+        "unit": "500 g",
+        "price": 70,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40028-2_3-guava-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 29,
+        "name": "Strawberry (Fresh)",
+        "unit": "250 g",
+        "price": 180,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40029-2_3-strawberry-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 30,
+        "name": "Mosambi (Fresh)",
+        "unit": "1 kg",
+        "price": 65,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40030-2_3-mosambi-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 31,
+        "name": "Lemon (Fresh)",
+        "unit": "500 g",
+        "price": 50,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40031-2_3-lemon-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 32,
+        "name": "Watermelon (Fresh)",
+        "unit": "1 pc",
+        "price": 250,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40032-2_3-watermelon-whole/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 33,
+        "name": "Pineapple (Fresh)",
+        "unit": "1 pc",
+        "price": 100,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40033-2_3-pineapple-whole/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 34,
+        "name": "Kiwi (Fresh)",
+        "unit": "250 g",
+        "price": 200,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40034-2_3-kiwi-loose/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 35,
+        "name": "Coconut (Fresh)",
+        "unit": "1 pc",
+        "price": 40,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/produce/40035-2_3-coconut-whole/260x260-c0bab6ba.jpg",
+        "category": "Fruits"
+    },
+    {
+        "id": 36,
+        "name": "Cow Milk (Fresh)",
+        "unit": "1 L",
+        "price": 55,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40101-2_3-milk-cow-loose/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 37,
+        "name": "Yogurt (Fresh)",
+        "unit": "500 g",
+        "price": 40,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40102-2_3-yogurt-fresh-loose/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 38,
+        "name": "Butter (Premium)",
+        "unit": "200 g",
+        "price": 180,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40103-2_3-butter-premium/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 39,
+        "name": "Paneer (Fresh)",
+        "unit": "250 g",
+        "price": 250,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40104-2_3-paneer-fresh/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 40,
+        "name": "Cheese (Processed)",
+        "unit": "200 g",
+        "price": 200,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40105-2_3-cheese-processed/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 41,
+        "name": "Ghee (Pure)",
+        "unit": "200 ml",
+        "price": 500,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40106-2_3-ghee-pure/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 42,
+        "name": "Dahi (Homemade)",
+        "unit": "500 ml",
+        "price": 35,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40107-2_3-dahi-homemade/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 43,
+        "name": "Cream (Heavy)",
+        "unit": "200 ml",
+        "price": 120,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/dairy/40108-2_3-cream-heavy/260x260-c0bab6ba.jpg",
+        "category": "Dairy"
+    },
+    {
+        "id": 44,
+        "name": "Rice (Basmati)",
+        "unit": "1 kg",
+        "price": 120,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40201-2_3-rice-basmati/260x260-c0bab6ba.jpg",
+        "category": "Grains"
+    },
+    {
+        "id": 45,
+        "name": "Wheat Flour (Atta)",
+        "unit": "1 kg",
+        "price": 40,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40202-2_3-atta-wheat/260x260-c0bab6ba.jpg",
+        "category": "Grains"
+    },
+    {
+        "id": 46,
+        "name": "Lentils (Toor Dal)",
+        "unit": "1 kg",
+        "price": 130,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40203-2_3-dal-toor/260x260-c0bab6ba.jpg",
+        "category": "Grains"
+    },
+    {
+        "id": 47,
+        "name": "Chickpeas (Chana)",
+        "unit": "1 kg",
+        "price": 140,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40204-2_3-chana-dry/260x260-c0bab6ba.jpg",
+        "category": "Grains"
+    },
+    {
+        "id": 48,
+        "name": "Oil (Sunflower)",
+        "unit": "1 L",
+        "price": 160,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40205-2_3-oil-sunflower/260x260-c0bab6ba.jpg",
+        "category": "Grains"
+    },
+    {
+        "id": 49,
+        "name": "Salt (Refined)",
+        "unit": "1 kg",
+        "price": 20,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40206-2_3-salt-refined/260x260-c0bab6ba.jpg",
+        "category": "Grains"
+    },
+    {
+        "id": 50,
+        "name": "Sugar (White)",
+        "unit": "1 kg",
+        "price": 50,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40207-2_3-sugar-white/260x260-c0bab6ba.jpg",
+        "category": "Grains"
+    },
+    {
+        "id": 51,
+        "name": "Spice Mix (Garam Masala)",
+        "unit": "100 g",
+        "price": 80,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40301-2_3-garam-masala/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 52,
+        "name": "Tea Leaves (Assam)",
+        "unit": "250 g",
+        "price": 300,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40302-2_3-tea-assam/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 53,
+        "name": "Coffee Powder",
+        "unit": "100 g",
+        "price": 400,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40303-2_3-coffee-powder/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 54,
+        "name": "Bread (White)",
+        "unit": "1 pc",
+        "price": 50,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/bakery/40304-2_3-bread-white/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 55,
+        "name": "Biscuits (Digestive)",
+        "unit": "250 g",
+        "price": 60,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/bakery/40305-2_3-biscuits-digestive/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 56,
+        "name": "Cereal (Corn Flakes)",
+        "unit": "300 g",
+        "price": 180,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/bakery/40306-2_3-cereal-cornflakes/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 57,
+        "name": "Honey (Pure)",
+        "unit": "250 ml",
+        "price": 250,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40307-2_3-honey-pure/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 58,
+        "name": "Peanut Butter",
+        "unit": "200 g",
+        "price": 200,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40308-2_3-peanut-butter/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 59,
+        "name": "Jam (Mixed Fruit)",
+        "unit": "250 g",
+        "price": 150,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40309-2_3-jam-fruit/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    },
+    {
+        "id": 60,
+        "name": "Pasta (Wheat)",
+        "unit": "500 g",
+        "price": 80,
+        "in_stock": true,
+        "stock_quantity": 100,
+        "image_url": "https://images.bigbasket.com/p/grocery/40310-2_3-pasta-wheat/260x260-c0bab6ba.jpg",
+        "category": "Packaged"
+    }
+]
