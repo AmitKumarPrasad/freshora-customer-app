@@ -94,6 +94,7 @@ class NotificationService {
         }
       }
     } catch (e) {
+      // Silently skip token storage if it fails
     }
   }
 
@@ -114,6 +115,7 @@ class NotificationService {
       await Future.delayed(const Duration(milliseconds: 500));
       await _storeFcmToken();
     } catch (e) {
+      // Silently skip if token refresh fails
     }
   }
 

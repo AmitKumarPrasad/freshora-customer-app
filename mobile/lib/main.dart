@@ -26,7 +26,6 @@ void main() async {
     await Firebase.initializeApp();
     await NotificationService().initialize();
   } catch (e) {
-    print('Firebase initialization error: $e');
     // Continue without notifications if Firebase fails
   }
   runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
@@ -371,7 +370,6 @@ class _LoginPageState extends State<LoginPage> {
                 .uploadFcmToken(fcmToken, session.token!);
           }
         } catch (e) {
-          print('Warning: Could not upload FCM token: $e');
           // Non-blocking; continue with authentication
         }
       }

@@ -154,7 +154,6 @@ class HttpAuthRepository implements AuthRepository {
       );
       _ensureSuccess(response, fallback: 'Failed to upload FCM token.');
     } catch (e) {
-      print('Error uploading FCM token: $e');
       // Non-blocking; continue even if upload fails
     }
   }
