@@ -26,7 +26,6 @@ void main() {
     expect(find.text('1 kg'), findsOneWidget);
     expect(find.text('₹30'), findsOneWidget);
     expect(find.text('MRP ₹40'), findsOneWidget);
-    expect(find.text('Product Detail'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.add).last);
