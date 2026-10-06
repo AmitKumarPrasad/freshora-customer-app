@@ -1,0 +1,35 @@
+﻿{
+  "project_info": {
+    "project_number": "115127987507765507326",
+    "firebase_url": "https://freshora-e59df.firebaseio.com",
+    "project_id": "freshora-e59df",
+    "storage_bucket": "freshora-e59df.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:115127987507765507326:android:freshora",
+        "android_client_info": {
+          "package_name": "com.freshora.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "115127987507765507326-abc123.apps.googleusercontent.com",
+          "client_type": 1
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPUfXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
