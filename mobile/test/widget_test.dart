@@ -99,7 +99,7 @@ void main() {
     await tester.tap(signInButton);
     await tester.pumpAndSettle();
     expect(find.text('FRESHORA'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Shop'), findsOneWidget);
 
     // AppShell asks for location permission on first launch. Dismiss it so the
     // modal does not block the navigation tap below in the widget test.
@@ -109,9 +109,9 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.text('Account'));
     await tester.pumpAndSettle();
-    expect(find.text('Customer profile'), findsOneWidget);
+    expect(find.text('Account'), findsOneWidget);
     expect(find.text('9876543210'), findsOneWidget);
   });
 
@@ -130,11 +130,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.text('Account'));
     await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -400));
     await tester.pumpAndSettle();
-    final myAddresses = find.text('My Addresses');
+    final myAddresses = find.text('Delivery Address');
     await tester.ensureVisible(myAddresses);
     await tester.pumpAndSettle();
     await tester.tap(myAddresses);
@@ -183,7 +183,7 @@ void main() {
     expect(find.text("Today's Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30'), findsWidgets);
-    expect(find.text('per 1 kg'), findsWidgets);
+    expect(find.textContaining('1 kg'), findsWidgets);
   });
 
   testWidgets('Home search filters products and opens notifications',
@@ -228,7 +228,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Products'));
+    await tester.tap(find.text('Explore'));
     await tester.pumpAndSettle();
 
     final dairyFilter = find.widgetWithText(ChoiceChip, 'Dairy');
@@ -260,25 +260,25 @@ void main() {
 
     await tester.pumpWidget(buildShell());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Products'));
+    await tester.tap(find.text('Explore'));
     await tester.pumpAndSettle();
-    final addButton = find.widgetWithText(FilledButton, 'Add').first;
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
+    final addButton = find.byTooltip('Add to cart').first;
+    await tester.ensureVisible(addButton);
     await tester.pumpAndSettle();
     await tester.tap(addButton);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(NavigationDestination).at(2));
+    await tester.tap(find.text('Cart'));
     await tester.pumpAndSettle();
     expect(find.text('Tomato'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.descendant(of: find.byType(CartPage), matching: find.text('1')), findsOneWidget);
 
     await tester.pumpWidget(buildShell());
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(NavigationDestination).at(2));
+    await tester.tap(find.text('Cart'));
     await tester.pumpAndSettle();
 
     expect(find.text('Tomato'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.descendant(of: find.byType(CartPage), matching: find.text('1')), findsOneWidget);
   });
 }
