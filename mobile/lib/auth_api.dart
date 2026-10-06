@@ -37,6 +37,7 @@ class HttpAuthRepository implements AuthRepository {
   final http.Client _client;
   final FlutterSecureStorage _storage;
   final String _baseUrl;
+  Future<CustomerSession?>? _refreshInFlight;
 
   Future<String> _deviceId() async {
     const key = 'talegaon_fresh_device_id';
@@ -105,7 +106,12 @@ class HttpAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<CustomerSession?> restoreSession() async {
+  Future<CustomerSession?> restoreSession() =>
+      _refreshInFlight ??= _restoreSessionOnce().whenComplete(() {
+        _refreshInFlight = null;
+      });
+
+  Future<CustomerSession?> _restoreSessionOnce() async {
     final refresh = await _storage.read(key: 'talegaon_fresh_refresh_token');
     if (refresh == null || refresh.isEmpty) return null;
     final phone = await _storage.read(key: 'talegaon_fresh_phone');

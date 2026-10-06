@@ -869,6 +869,19 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
     }
   }
 
+  Future<String?> _renewAccessToken() async {
+    try {
+      final renewed = await widget.authRepository.restoreSession();
+      if (renewed != null && mounted) {
+        setState(() => session = renewed);
+      }
+      return renewed?.token;
+    } catch (e) {
+      debugPrint('Customer session refresh failed: $e');
+      return null;
+    }
+  }
+
   void _openAuthentication({required bool createAccount}) {
     setState(() {
       startWithCreateAccount = createAccount;
@@ -909,7 +922,11 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
                         onSignIn: () =>
                             _openAuthentication(createAccount: false),
                       )
-                : AppShell(session: session!, onSignOut: _signOut),
+                : AppShell(
+                    session: session!,
+                    onSignOut: _signOut,
+                    refreshAccessToken: _renewAccessToken,
+                  ),
       );
 }
 
@@ -1059,12 +1076,14 @@ class AppShell extends StatefulWidget {
       {super.key,
       ProductRepository? repository,
       required this.session,
-      this.onSignOut})
+      this.onSignOut,
+      this.refreshAccessToken})
       : repository = repository ?? HttpProductRepository(token: session.token);
 
   final ProductRepository repository;
   final CustomerSession session;
   final VoidCallback? onSignOut;
+  final Future<String?> Function()? refreshAccessToken;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -1092,7 +1111,10 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    customerApi = HttpCustomerRepository(token: widget.session.token ?? '');
+    customerApi = HttpCustomerRepository(
+      token: widget.session.token ?? '',
+      refreshAccessToken: widget.refreshAccessToken,
+    );
     _loadProducts().then((_) => _loadCart());
     _loadOrders();
     _loadAddresses();
