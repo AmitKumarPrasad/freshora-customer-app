@@ -654,6 +654,9 @@ class OrderRecord {
     required this.createdAt,
     this.status = "CONFIRMED",
     this.items = const [],
+    this.deliveryFee = 0,
+    this.discountAmount = 0,
+    this.promoCode,
     this.paymentLinkUrl,
   });
 
@@ -664,6 +667,9 @@ class OrderRecord {
   final String status;
   final DateTime createdAt;
   final List<OrderLine> items;
+  final double deliveryFee;
+  final double discountAmount;
+  final String? promoCode;
   final String? paymentLinkUrl;
 
   Map<String, dynamic> toJson() => {
@@ -674,6 +680,9 @@ class OrderRecord {
         'createdAt': createdAt.toIso8601String(),
         'status': status,
         'paymentLinkUrl': paymentLinkUrl,
+        'deliveryFee': deliveryFee,
+        'discountAmount': discountAmount,
+        'promoCode': promoCode,
         'items': items.map((item) => item.toJson()).toList(),
       };
 
@@ -712,6 +721,12 @@ class OrderRecord {
       status:
           value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
+      deliveryFee:
+          value['delivery_fee'] is num ? (value['delivery_fee'] as num).toDouble() : 0,
+      discountAmount: value['discount_amount'] is num
+          ? (value['discount_amount'] as num).toDouble()
+          : 0,
+      promoCode: value['promo_code'] is String ? value['promo_code'] as String : null,
       paymentLinkUrl: value['payment_link_url'] is String
           ? value['payment_link_url'] as String
           : null,
@@ -745,6 +760,12 @@ class OrderRecord {
       status:
           value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
+      deliveryFee:
+          value['deliveryFee'] is num ? (value['deliveryFee'] as num).toDouble() : 0,
+      discountAmount: value['discountAmount'] is num
+          ? (value['discountAmount'] as num).toDouble()
+          : 0,
+      promoCode: value['promoCode'] is String ? value['promoCode'] as String : null,
       paymentLinkUrl: value['paymentLinkUrl'] is String
           ? value['paymentLinkUrl'] as String
           : null,
@@ -1262,10 +1283,14 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<OrderRecord> _completeOrder(
-      String payment, CustomerAddress address, double total) async {
+      String payment, CustomerAddress address, double total, String? promoCode) async {
     if (_useRemoteCustomerApi) {
       final created = await customerApi.createOrder(
-          List<CartItem>.from(cart), address, payment);
+        List<CartItem>.from(cart),
+        address,
+        payment,
+        promoCode: promoCode,
+      );
       if (!mounted) return created;
       setState(() {
         orders.insert(0, created);
@@ -1290,12 +1315,18 @@ class _AppShellState extends State<AppShell> {
             price: item.product.price,
             quantity: item.quantity))
         .toList();
+    final subtotal = cart.fold<double>(
+        0, (sum, item) => sum + item.product.price * item.quantity);
+    final deliveryFee = _deliveryFeeFor(subtotal);
     final order = OrderRecord(
         id: orderId,
         total: total,
         payment: payment,
         address: address.displayAddress,
         createdAt: DateTime.now(),
+        promoCode: promoCode,
+        deliveryFee: deliveryFee,
+        discountAmount: subtotal + deliveryFee - total,
         items: items);
     setState(() {
       orders.insert(0, order);
@@ -1514,6 +1545,7 @@ class _AppShellState extends State<AppShell> {
       AiAssistantPage(token: widget.session.token ?? ''),
       ProfilePage(
         session: widget.session,
+        api: _useRemoteCustomerApi ? customerApi : null,
         addresses: addresses,
         orders: orders,
         onManageAddresses: () => Navigator.push(
@@ -2777,6 +2809,8 @@ const Map<String, _PromoOffer> _promoCodes = {
   'FRESHORA20': _PromoOffer(percentOff: 0.20, maxOff: 100, minOrder: 499),
 };
 
+double _deliveryFeeFor(double subtotal) => subtotal < 199 ? 20 : 0;
+
 class _PromoOffer {
   const _PromoOffer(
       {this.percentOff, this.maxOff, this.flatOff, this.minOrder = 0});
@@ -2814,7 +2848,7 @@ class CartPage extends StatefulWidget {
   final Future<void> Function()? onRetrySync;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(
-      String payment, CustomerAddress address, double total) onOrderPlaced;
+      String payment, CustomerAddress address, double total, String? promoCode) onOrderPlaced;
   final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
 
@@ -2825,19 +2859,72 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   final _promoController = TextEditingController();
   String? _appliedCode;
+  PromoQuote? _promoQuote;
   String? _promoError;
+  bool _applyingPromo = false;
 
   double get subtotal =>
       widget.cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
+  bool get _promoQuoteMatchesCart =>
+      _promoQuote != null && _promoQuote!.subtotal == subtotal;
+
+  String? get _activePromoCode =>
+      widget.api == null || _promoQuoteMatchesCart ? _appliedCode : null;
+
   double get discount {
+    if (widget.api != null) {
+      return _promoQuoteMatchesCart ? _promoQuote!.discountAmount : 0;
+    }
     final code = _appliedCode;
     if (code == null) return 0;
     return _promoCodes[code]!.discountFor(subtotal);
   }
 
-  void _applyPromo() {
+  double get delivery =>
+      _promoQuoteMatchesCart ? _promoQuote!.deliveryFee : _deliveryFeeFor(subtotal);
+
+  double get total =>
+      _promoQuoteMatchesCart ? _promoQuote!.total : subtotal + delivery - discount;
+
+  Future<void> _applyPromo() async {
+    if (_applyingPromo) return;
     final code = _promoController.text.trim().toUpperCase();
+    if (widget.api != null) {
+      if (code.isEmpty) {
+        setState(() {
+          _promoError = 'Enter a promo code';
+          _appliedCode = null;
+          _promoQuote = null;
+        });
+        return;
+      }
+      setState(() {
+        _applyingPromo = true;
+        _promoError = null;
+        _appliedCode = null;
+        _promoQuote = null;
+      });
+      try {
+        final quote = await widget.api!.validatePromo(code, widget.cart);
+        if (!mounted) return;
+        setState(() {
+          _promoQuote = quote;
+          _appliedCode = quote.promoCode;
+        });
+      } on CustomerApiException catch (e) {
+        if (mounted) setState(() => _promoError = e.message);
+      } catch (_) {
+        if (mounted) {
+          setState(
+              () => _promoError = 'Could not validate promo code. Please retry.');
+        }
+      } finally {
+        if (mounted) setState(() => _applyingPromo = false);
+      }
+      return;
+    }
+
     final offer = _promoCodes[code];
     setState(() {
       if (code.isEmpty) {
@@ -2868,7 +2955,8 @@ class _CartPageState extends State<CartPage> {
       context,
       MaterialPageRoute(
         builder: (_) => CheckoutPage(
-          total: subtotal + (subtotal >= 199 ? 20 : 0) - discount,
+          total: total,
+          promoCode: _activePromoCode,
           addresses: widget.addresses,
           onOrderPlaced: widget.onOrderPlaced,
           onContinueShopping: widget.onContinueShopping,
@@ -2880,8 +2968,6 @@ class _CartPageState extends State<CartPage> {
 
   @override
   Widget build(BuildContext context) {
-    final delivery = subtotal >= 199 ? 20.0 : 0.0;
-    final total = subtotal + delivery - discount;
     return Column(
       children: [
         const Padding(
@@ -2993,7 +3079,7 @@ class _CartPageState extends State<CartPage> {
                           decoration: InputDecoration(
                             labelText: 'Promo code',
                             errorText: _promoError,
-                            suffixIcon: _appliedCode != null
+                            suffixIcon: _activePromoCode != null
                                 ? const Icon(Icons.check_circle, color: _brandGreen)
                                 : null,
                           ),
@@ -3001,13 +3087,31 @@ class _CartPageState extends State<CartPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      TextButton(onPressed: _applyPromo, child: const Text('Apply')),
+                      TextButton(
+                        onPressed: _applyingPromo ? null : _applyPromo,
+                        child: _applyingPromo
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Apply'),
+                      ),
                     ]),
+                    if (widget.api != null &&
+                        _appliedCode != null &&
+                        !_promoQuoteMatchesCart)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Your cart changed. Apply the promo code again.',
+                          style: TextStyle(color: Colors.deepOrange),
+                        ),
+                      ),
                     const SizedBox(height: 14),
                     SummaryRow(label: 'Subtotal', value: subtotal),
                     SummaryRow(label: 'Delivery Fee', value: delivery),
                     if (discount > 0)
-                      SummaryRow(label: 'Discount ($_appliedCode)', value: -discount),
+                      SummaryRow(label: 'Discount ($_activePromoCode)', value: -discount),
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -3084,11 +3188,13 @@ class CheckoutPage extends StatefulWidget {
       required this.addresses,
       required this.onOrderPlaced,
       required this.onContinueShopping,
+      this.promoCode,
       this.api});
   final double total;
+  final String? promoCode;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(
-      String payment, CustomerAddress address, double total) onOrderPlaced;
+      String payment, CustomerAddress address, double total, String? promoCode) onOrderPlaced;
   final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
   @override
@@ -3250,7 +3356,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           payment,
                           widget.addresses[selectedAddress.clamp(
                               0, widget.addresses.length - 1)],
-                          widget.total);
+                          widget.total,
+                          widget.promoCode);
                       if (!context.mounted) return;
                       Navigator.pushReplacement(
                           context,
@@ -3607,6 +3714,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                     ),
                   )),
             const SizedBox(height: 10),
+            SummaryRow(label: 'Delivery Fee', value: order.deliveryFee),
+            if (order.discountAmount > 0)
+              SummaryRow(
+                  label: 'Discount (${order.promoCode ?? 'Promo'})',
+                  value: -order.discountAmount),
             SummaryRow(label: 'Order Total', value: order.total, bold: true),
             const SizedBox(height: 14),
             Card(
@@ -4182,8 +4294,9 @@ class FavoritesPage extends StatelessWidget {
 }
 
 class ProfileInformationPage extends StatelessWidget {
-  const ProfileInformationPage({super.key, required this.title});
+  const ProfileInformationPage({super.key, required this.title, this.session});
   final String title;
+  final CustomerSession? session;
 
   Future<void> _contactSupport(BuildContext context) async {
     try {
@@ -4216,6 +4329,17 @@ class ProfileInformationPage extends StatelessWidget {
                 padding: EdgeInsets.all(16),
                 child: Text(
                     'To finish an unpaid UPI order, open My Orders, select the order, and tap Pay with UPI.')),
+          ] else if (title == 'My Details') ...[
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Name'),
+              subtitle: Text(session?.name ?? 'Name unavailable'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_outlined),
+              title: const Text('Mobile number'),
+              subtitle: Text(session?.phone ?? 'Mobile number unavailable'),
+            ),
           ] else if (title == 'Help & Support') ...[
             const Text('Need help with an order?',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
@@ -4248,6 +4372,7 @@ class ProfilePage extends StatefulWidget {
       {super.key,
       required this.session,
       required this.addresses,
+      this.api,
       required this.onManageAddresses,
       required this.onManageFavorites,
       required this.onViewOrders,
@@ -4256,6 +4381,7 @@ class ProfilePage extends StatefulWidget {
       this.onDeleteAccount});
   final List<OrderRecord> orders;
   final CustomerSession session;
+  final HttpCustomerRepository? api;
   final List<CustomerAddress> addresses;
   final VoidCallback onManageAddresses;
   final VoidCallback onManageFavorites;
@@ -4414,7 +4540,10 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (_) => ProfileInformationPage(title: feature)));
+            builder: (_) => ProfileInformationPage(
+              title: feature,
+              session: widget.session,
+            )));
   }
 
   String get _referralCode {
@@ -4425,16 +4554,16 @@ class _ProfilePageState extends State<ProfilePage> {
     return 'FRESHORA$suffix';
   }
 
-  Future<void> _copyReferralCode(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: _referralCode));
+  Future<void> _copyReferralCode(BuildContext context, String code) async {
+    await Clipboard.setData(ClipboardData(text: code));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Referral code copied')));
   }
 
-  Future<void> _shareReferralCode(BuildContext context) async {
+  Future<void> _shareReferralCode(BuildContext context, String code) async {
     final message = 'Get fresh fruits & veggies delivered with FRESHORA! '
-        'Use my code $_referralCode to get a discount on your first order. '
+        'Use my code $code for 20% off (up to ₹100) on your first order of ₹499 or more. '
         'Download the app and start shopping fresh today.';
     final uri =
         Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');
@@ -4490,7 +4619,8 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 24),
           const Divider(height: 1),
           _accountRow(Icons.shopping_bag_outlined, 'Orders', widget.onViewOrders),
-          _accountRow(Icons.person_outline, 'My Details', _showPhotoOptions),
+          _accountRow(Icons.person_outline, 'My Details',
+              () => _openMenu(context, 'My Details')),
           _accountRow(Icons.location_on_outlined, 'Delivery Address',
               widget.onManageAddresses),
           _accountRow(Icons.payment_outlined, 'Payment Methods',
@@ -4541,32 +4671,56 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
   void _showReferral(BuildContext context) {
+    final referralCode = widget.api?.getReferralCode() ?? Future.value(_referralCode);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 6, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Your referral code',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 10),
-              Text(_referralCode,
-                  style: const TextStyle(fontSize: 22, color: _brandGreenDark)),
-              const SizedBox(height: 14),
-              FilledButton(
-                onPressed: () => _copyReferralCode(context),
-                child: const Text('Copy code'),
+        child: FutureBuilder<String>(
+          future: referralCode,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError || !snapshot.hasData) {
+              final message = snapshot.error is CustomerApiException
+                  ? (snapshot.error as CustomerApiException).message
+                  : 'Could not load your referral code. Please try again.';
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(message),
+              );
+            }
+            final code = snapshot.data!;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Your referral code',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 10),
+                  Text(code,
+                      style: const TextStyle(fontSize: 22, color: _brandGreenDark)),
+                  const SizedBox(height: 8),
+                  const Text('20% off, up to ₹100, on a first order of ₹499 or more.'),
+                  const SizedBox(height: 14),
+                  FilledButton(
+                    onPressed: () => _copyReferralCode(context, code),
+                    child: const Text('Copy code'),
+                  ),
+                  TextButton(
+                    onPressed: () => _shareReferralCode(context, code),
+                    child: const Text('Invite friends'),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () => _shareReferralCode(context),
-                child: const Text('Invite friends'),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

@@ -48,16 +48,26 @@ class HttpAuthRepository implements AuthRepository {
     return value;
   }
 
-  Future<CustomerSession> _sessionFromResponse(http.Response response) async {
+  Future<CustomerSession> _sessionFromResponse(
+    http.Response response, {
+    String? fallbackPhone,
+    String fallbackName = 'Talegaon Customer',
+  }) async {
     _ensureSuccess(response, fallback: 'Authentication failed.');
     final body = jsonDecode(response.body);
     if (body is! Map || body['access_token'] is! String || body['refresh_token'] is! String) {
       throw const AuthException('Invalid authentication response.');
     }
     final customer = body['customer'];
+    final responsePhone = customer is Map ? customer['phone'] : null;
+    final responseName = customer is Map ? customer['name'] : null;
     return CustomerSession(
-      phone: customer is Map && customer['phone'] is String ? customer['phone'] : '',
-      name: customer is Map && customer['name'] is String ? customer['name'] : 'Talegaon Customer',
+      phone: responsePhone is String && responsePhone.trim().isNotEmpty
+          ? responsePhone
+          : fallbackPhone ?? '',
+      name: responseName is String && responseName.trim().isNotEmpty
+          ? responseName
+          : fallbackName,
       token: body['access_token'],
       refreshToken: body['refresh_token'],
     );
@@ -75,7 +85,11 @@ class HttpAuthRepository implements AuthRepository {
     final response = await _client.post(Uri.parse('$_baseUrl/auth/register'),
       headers: const {'Accept':'application/json','Content-Type':'application/json'},
       body: jsonEncode({'phone': phone, 'pin': pin, 'name': name, 'device_id': await _deviceId()}));
-    final session = await _sessionFromResponse(response);
+    final session = await _sessionFromResponse(
+      response,
+      fallbackPhone: phone,
+      fallbackName: name,
+    );
     await _save(session);
     return session;
   }
@@ -85,7 +99,7 @@ class HttpAuthRepository implements AuthRepository {
     final response = await _client.post(Uri.parse('$_baseUrl/auth/login'),
       headers: const {'Accept':'application/json','Content-Type':'application/json'},
       body: jsonEncode({'phone': phone, 'pin': pin, 'device_id': await _deviceId()}));
-    final session = await _sessionFromResponse(response);
+    final session = await _sessionFromResponse(response, fallbackPhone: phone);
     await _save(session);
     return session;
   }
@@ -94,6 +108,8 @@ class HttpAuthRepository implements AuthRepository {
   Future<CustomerSession?> restoreSession() async {
     final refresh = await _storage.read(key: 'talegaon_fresh_refresh_token');
     if (refresh == null || refresh.isEmpty) return null;
+    final phone = await _storage.read(key: 'talegaon_fresh_phone');
+    final name = await _storage.read(key: 'talegaon_fresh_name');
     final response = await _client.post(Uri.parse('$_baseUrl/auth/refresh'),
       headers: const {'Accept':'application/json','Content-Type':'application/json'},
       body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
@@ -101,7 +117,11 @@ class HttpAuthRepository implements AuthRepository {
       await _clear();
       return null;
     }
-    final session = await _sessionFromResponse(response);
+    final session = await _sessionFromResponse(
+      response,
+      fallbackPhone: phone,
+      fallbackName: name ?? 'Talegaon Customer',
+    );
     await _save(session);
     return session;
   }

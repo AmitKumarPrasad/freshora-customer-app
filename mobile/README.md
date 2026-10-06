@@ -79,6 +79,8 @@ The authenticated customer can open **My Addresses** from Profile to add, edit, 
 
 Authenticated sessions use the server-side customer order APIs for checkout and order history: `POST /customers/me/orders`, `GET /customers/me/orders`, and `GET /customers/me/orders/{id}`. The server-side order ID is retained for payment and tracking. UPI checkout calls `POST /customers/me/orders/{id}/payment-link` and opens the returned Razorpay payment link. Order tracking and order history can refresh status from the backend.
 
+Checkout totals are calculated from catalog prices by the backend. Delivery is ₹20 for product subtotals below ₹199 and free at or above ₹199. The customer app validates `FRESH10` (10% off, up to ₹50), `WELCOME50` (₹50 off orders of ₹199 or more), and `FRESHORA20` (20% off, up to ₹100, orders of ₹499 or more) through `POST /customers/me/promos/validate`. Each account receives a server-generated referral code from `GET /customers/me/referral-code`; it gives a new customer 20% off up to ₹100 on their first order of ₹499 or more. The order API validates the code again and stores the resulting discount and delivery fee on the order.
+
 ## Customer cart API
 
 Authenticated sessions use the server-side cart through `GET /customers/me/cart`, `PUT /customers/me/cart`, and `DELETE /customers/me/cart`. Cart synchronization failures are surfaced in the cart UI with a retry action rather than silently replacing the server cart with stale local data. A `401 Unauthorized` response ends the customer session.

@@ -181,10 +181,13 @@ void main() {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       expect(body['address_id'], 42);
       expect(body['payment_method'], 'COD');
+      expect(body['promo_code'], 'FRESH10');
       expect(body['items'], hasLength(1));
       return http.Response(
         jsonEncode({
           'order_id': 1001, 'total': 120,
+          'subtotal': 120, 'delivery_fee': 0, 'discount_amount': 0,
+          'promo_code': 'FRESH10',
           'address': 'Main Road, Talegaon, 410507',
           'payment_method': 'COD', 'status': 'CONFIRMED',
           'items': [
@@ -202,10 +205,67 @@ void main() {
       name: 'Tomato', unit: 'kg', price: 40, icon: Icons.local_grocery_store,
     );
     final order = await repository.createOrder(
-      [CartItem(product, 3)], address, 'COD',
+      [CartItem(product, 3)], address, 'COD', promoCode: 'FRESH10',
     );
     expect(order.id, '1001');
     expect(order.status, 'CONFIRMED');
     expect(order.total, 120);
+  });
+
+  test('customer API retrieves a server-generated referral code', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'GET');
+      expect(request.url.path, '/customers/me/referral-code');
+      return http.Response(
+        jsonEncode({'referral_code': 'FRESHORAAB12CD34'}),
+        200,
+      );
+    });
+    final repository = HttpCustomerRepository(
+      token: 'jwt-token',
+      client: client,
+      baseUrl: 'https://example.test',
+    );
+
+    expect(await repository.getReferralCode(), 'FRESHORAAB12CD34');
+  });
+
+  test('customer API parses an authoritative promo quote', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/customers/me/promos/validate');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect(body['promo_code'], 'FRESH10');
+      expect((body['items'] as List).single['quantity'], 2);
+      return http.Response(
+        jsonEncode({
+          'promo_code': 'FRESH10',
+          'subtotal': 80,
+          'delivery_fee': 20,
+          'discount_amount': 8,
+          'total': 92,
+        }),
+        200,
+      );
+    });
+    final repository = HttpCustomerRepository(
+      token: 'jwt-token',
+      client: client,
+      baseUrl: 'https://example.test',
+    );
+    const product = Product(
+      name: 'Tomato',
+      unit: 'kg',
+      price: 40,
+      icon: Icons.local_grocery_store,
+    );
+
+    final quote =
+        await repository.validatePromo('FRESH10', [CartItem(product, 2)]);
+
+    expect(quote.subtotal, 80);
+    expect(quote.deliveryFee, 20);
+    expect(quote.discountAmount, 8);
+    expect(quote.total, 92);
   });
 }

@@ -11,6 +11,30 @@ class CustomerApiException implements Exception {
   final int? statusCode;
 }
 
+class PromoQuote {
+  const PromoQuote({
+    required this.promoCode,
+    required this.subtotal,
+    required this.deliveryFee,
+    required this.discountAmount,
+    required this.total,
+  });
+
+  final String promoCode;
+  final double subtotal;
+  final double deliveryFee;
+  final double discountAmount;
+  final double total;
+
+  factory PromoQuote.fromJson(Map<String, dynamic> json) => PromoQuote(
+        promoCode: json['promo_code'] as String,
+        subtotal: (json['subtotal'] as num).toDouble(),
+        deliveryFee: (json['delivery_fee'] as num).toDouble(),
+        discountAmount: (json['discount_amount'] as num).toDouble(),
+        total: (json['total'] as num).toDouble(),
+      );
+}
+
 class OrderTracking {
   const OrderTracking({
     required this.status,
@@ -99,6 +123,33 @@ class HttpCustomerRepository {
     _success(response);
   }
 
+  Future<String> getReferralCode() async {
+    final response =
+        await _client.get(Uri.parse('$_baseUrl/customers/me/referral-code'), headers: _headers);
+    final code = _success(response)['referral_code'];
+    if (code is! String || code.isEmpty) {
+      throw const CustomerApiException('Referral code was not returned by the server.');
+    }
+    return code;
+  }
+
+  Future<PromoQuote> validatePromo(String code, List<CartItem> cart) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/customers/me/promos/validate'),
+      headers: _headers,
+      body: jsonEncode({
+        'promo_code': code,
+        'items': cart.map((item) => {
+              'name': item.product.name,
+              'unit': item.product.unit,
+              'price': item.product.price,
+              'quantity': item.quantity,
+            }).toList(),
+      }),
+    );
+    return PromoQuote.fromJson(_success(response));
+  }
+
   Future<List<CustomerAddress>> getAddresses() async {
     final response = await _client.get(Uri.parse('$_baseUrl/customers/me/addresses'), headers: _headers);
     final body = _success(response);
@@ -174,7 +225,12 @@ class HttpCustomerRepository {
     });
   }
 
-  Future<OrderRecord> createOrder(List<CartItem> cart, CustomerAddress address, String payment) async {
+  Future<OrderRecord> createOrder(
+    List<CartItem> cart,
+    CustomerAddress address,
+    String payment, {
+    String? promoCode,
+  }) async {
     final response = await _client.post(
       Uri.parse('$_baseUrl/customers/me/orders'),
       headers: _headers,
@@ -187,6 +243,7 @@ class HttpCustomerRepository {
         }).toList(),
         if (address.id != null) 'address_id': address.id,
         'payment_method': payment,
+        if (promoCode != null) 'promo_code': promoCode,
       }),
     );
     return _orderFromApi(_success(response));

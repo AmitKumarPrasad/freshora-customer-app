@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:talegaon_fresh/customer_api.dart';
 import 'package:talegaon_fresh/main.dart';
 import 'package:talegaon_fresh/landing_page.dart';
 import 'package:talegaon_fresh/product_api.dart';
@@ -280,5 +285,91 @@ void main() {
 
     expect(find.text('Tomato'), findsOneWidget);
     expect(find.descendant(of: find.byType(CartPage), matching: find.text('1')), findsOneWidget);
+  });
+
+  testWidgets('My Details shows customer information, not photo options',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppShell(
+          repository: FakeProductRepository(),
+          session: const CustomerSession(
+            phone: '9876543210',
+            name: 'Talegaon Customer',
+            token: 'test-token',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Account'));
+    await tester.pumpAndSettle();
+
+    final details = find.text('My Details');
+    await tester.ensureVisible(details);
+    await tester.pumpAndSettle();
+    await tester.tap(details);
+    await tester.pumpAndSettle();
+
+    expect(find.text('My Details'), findsOneWidget);
+    expect(find.text('Talegaon Customer'), findsOneWidget);
+    expect(find.text('9876543210'), findsOneWidget);
+    expect(find.text('Choose from gallery'), findsNothing);
+  });
+
+  testWidgets('online cart validates promo and shows authoritative totals',
+      (tester) async {
+    final product = Product(
+      name: 'Tomato',
+      unit: '1 kg',
+      price: 100,
+      icon: Icons.circle,
+    );
+    final api = HttpCustomerRepository(
+      token: 'test-token',
+      baseUrl: 'https://example.test',
+      client: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/customers/me/promos/validate');
+        expect(jsonDecode(request.body)['promo_code'], 'FRESH10');
+        return http.Response(jsonEncode({
+          'promo_code': 'FRESH10',
+          'subtotal': 100,
+          'delivery_fee': 20,
+          'discount_amount': 10,
+          'total': 110,
+        }), 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CartPage(
+            cart: [CartItem(product, 1)],
+            onIncrement: (_) {},
+            onDecrement: (_) {},
+            onRemove: (_) {},
+            addresses: const [],
+            onOrderPlaced: (_, __, ___, ____) async => OrderRecord(
+              id: '1',
+              total: 100,
+              payment: 'COD',
+              address: 'Talegaon',
+              createdAt: DateTime(2026),
+            ),
+            onContinueShopping: () {},
+            api: api,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'FRESH10');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discount (FRESH10)'), findsOneWidget);
+    expect(find.text('₹110'), findsOneWidget);
   });
 }

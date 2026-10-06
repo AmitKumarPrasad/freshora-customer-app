@@ -56,4 +56,43 @@ void main() {
     expect(session.token, 'jwt-token');
     expect(session.refreshToken, 'refresh-token');
   });
+
+  test('login preserves the entered mobile number when customer is omitted', () async {
+    final repository = HttpAuthRepository(
+      client: MockClient((_) async => http.Response(jsonEncode({
+        'access_token': 'jwt-token',
+        'refresh_token': 'refresh-token',
+      }), 200)),
+      baseUrl: 'https://example.test',
+    );
+
+    final session = await repository.login('9876543210', '654321');
+
+    expect(session.phone, '9876543210');
+    expect(session.name, 'Talegaon Customer');
+  });
+
+  test('session restore preserves saved customer details when omitted by API', () async {
+    values['talegaon_fresh_access_token'] = 'old-access';
+    values['talegaon_fresh_refresh_token'] = 'old-refresh';
+    values['talegaon_fresh_phone'] = '9876543210';
+    values['talegaon_fresh_name'] = 'Amit Customer';
+    final repository = HttpAuthRepository(
+      client: MockClient((request) async {
+        expect(request.url.path, '/auth/refresh');
+        return http.Response(jsonEncode({
+          'access_token': 'new-access',
+          'refresh_token': 'new-refresh',
+        }), 200);
+      }),
+      baseUrl: 'https://example.test',
+    );
+
+    final session = await repository.restoreSession();
+
+    expect(session?.phone, '9876543210');
+    expect(session?.name, 'Amit Customer');
+    expect(values['talegaon_fresh_access_token'], 'new-access');
+    expect(values['talegaon_fresh_refresh_token'], 'new-refresh');
+  });
 }

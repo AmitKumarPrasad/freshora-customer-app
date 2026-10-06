@@ -56,7 +56,7 @@ void main() {
       total: 80,
       addresses: [CustomerAddress(label: 'Home', fullAddress: 'Main Road', city: 'Talegaon', pincode: '410507')],
       onContinueShopping: () {},
-      onOrderPlaced: (_, __, ___) { calls++; return result.future; },
+      onOrderPlaced: (_, __, ___, ____) { calls++; return result.future; },
     )));
     final place = find.widgetWithText(FilledButton, 'Place Order');
     await tester.ensureVisible(place);
