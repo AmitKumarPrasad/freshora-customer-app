@@ -271,7 +271,7 @@ void main() {
     await tester.tap(find.text('Cart'));
     await tester.pumpAndSettle();
     expect(find.text('Tomato'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.descendant(of: find.byType(CartPage), matching: find.text('1')), findsOneWidget);
 
     await tester.pumpWidget(buildShell());
     await tester.pumpAndSettle();
@@ -279,6 +279,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tomato'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.descendant(of: find.byType(CartPage), matching: find.text('1')), findsOneWidget);
   });
 }
