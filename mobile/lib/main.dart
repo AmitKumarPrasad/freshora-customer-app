@@ -1973,7 +1973,7 @@ class _HomePageState extends State<HomePage> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: .82),
+                childAspectRatio: .62),
             delegate: SliverChildBuilderDelegate(
                 (context, i) => ProductCard(
                     product: visibleProducts[i],
@@ -2382,7 +2382,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
-                childAspectRatio: .71,
+                childAspectRatio: .58,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, i) => ProductCard(
@@ -2693,30 +2693,42 @@ class ProductCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12, color: _mutedInk)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text('₹${(product.price * (quantity == 0 ? 1 : quantity)).toStringAsFixed(0)}',
-                            style: const TextStyle(
-                                fontSize: 17, fontWeight: FontWeight.w800,
-                                color: _ink)),
-                      ),
-                      if (quantity == 0)
-                        _squareAction(Icons.add, () => onAdd(product), 'Add to cart')
-                      else ...[
-                        InkWell(
-                          onTap: onDecrement,
-                          child: const Icon(Icons.remove, size: 20, color: _brandGreenDark),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 7),
-                          child: Text('$quantity',
-                              style: const TextStyle(fontWeight: FontWeight.w800)),
-                        ),
-                        _squareAction(Icons.add, onIncrement, 'Increase quantity'),
-                      ],
-                    ],
+                  const SizedBox(height: 8),
+                  Text(
+                    '₹${(product.price * (quantity == 0 ? 1 : quantity)).toStringAsFixed(0)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w800, color: _ink),
+                  ),
+                  const SizedBox(height: 7),
+                  SizedBox(
+                    height: 36,
+                    width: double.infinity,
+                    child: quantity == 0
+                        ? Tooltip(
+                            message: 'Add to cart',
+                            child: FilledButton(
+                              onPressed: () => onAdd(product),
+                              style: FilledButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 36),
+                              ),
+                              child: const Text('ADD'),
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _squareAction(Icons.remove, onDecrement,
+                                  'Decrease quantity'),
+                              Text('$quantity',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w800)),
+                              _squareAction(Icons.add, onIncrement,
+                                  'Increase quantity'),
+                            ],
+                          ),
                   ),
                 ],
               ),
@@ -2732,13 +2744,13 @@ class ProductCard extends StatelessWidget {
           onTap: action,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            height: 43,
-            width: 43,
+            height: 36,
+            width: 36,
             decoration: BoxDecoration(
               color: _brandGreen,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: Colors.white, size: 24),
+            child: Icon(icon, color: Colors.white, size: 20),
           ),
         ),
       );
@@ -3320,7 +3332,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _useCurrentLocation() async {
     setState(() => savingAddress = true);
-    final location = await detectCurrentLocationLabel();
+    final location = await detectCurrentLocationAddress();
     if (!mounted) return;
     setState(() => savingAddress = false);
     if (location == null) {
@@ -3329,17 +3341,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
               'Could not detect your location. Enter your address manually instead.')));
       return;
     }
-    final parts = location
-        .split(',')
-        .map((part) => part.trim())
-        .where((part) => part.isNotEmpty)
-        .toList();
     await _addAddress(
         initialAddress: CustomerAddress(
       label: 'Current location',
-      fullAddress: parts.isEmpty ? location : parts.first,
-      city: parts.length > 1 ? parts.last : location,
-      pincode: '',
+      fullAddress: location.address,
+      city: location.city,
+      pincode: location.pincode,
     ));
   }
 
