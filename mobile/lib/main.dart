@@ -26,7 +26,7 @@ void main() async {
     await Firebase.initializeApp();
     await NotificationService().initialize();
   } catch (e) {
-    // Continue without notifications if Firebase fails
+    debugPrint('Firebase initialization failed: $e');
   }
   runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
 }
@@ -360,19 +360,6 @@ class _LoginPageState extends State<LoginPage> {
               .register(normalized, pin.text, name.text.trim())
           : await widget.authRepository.login(normalized, pin.text);
       if (!mounted) return;
-      
-      // Upload FCM token to backend after successful authentication
-      if (widget.authRepository is HttpAuthRepository && session.token != null) {
-        try {
-          final fcmToken = await NotificationService().getFcmToken();
-          if (fcmToken != null && fcmToken.isNotEmpty) {
-            await (widget.authRepository as HttpAuthRepository)
-                .uploadFcmToken(fcmToken, session.token!);
-          }
-        } catch (e) {
-          // Non-blocking; continue with authentication
-        }
-      }
       
       widget.onAuthenticated(session);
     } on AuthException catch (e) {
@@ -821,6 +808,12 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   @override
   void initState() {
     super.initState();
+    NotificationService.onFcmTokenReady = (token) {
+      final currentSession = session;
+      if (currentSession != null) {
+        unawaited(_uploadFcmToken(currentSession, token));
+      }
+    };
     _restoreSession();
     Future<void>.delayed(const Duration(milliseconds: 1600), () {
       if (mounted) setState(() => showSplash = false);
@@ -830,8 +823,40 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   Future<void> _restoreSession() async {
     try {
       final restored = await widget.authRepository.restoreSession();
-      if (mounted && restored != null) setState(() => session = restored);
-    } catch (_) {}
+      if (mounted && restored != null) {
+        setState(() => session = restored);
+        unawaited(_syncFcmToken(restored));
+      }
+    } catch (e) {
+      debugPrint('Session restore failed: $e');
+    }
+  }
+
+  Future<void> _uploadFcmToken(CustomerSession currentSession, String token) async {
+    final accessToken = currentSession.token;
+    if (widget.authRepository is! HttpAuthRepository ||
+        accessToken == null || token.isEmpty) return;
+    try {
+      await (widget.authRepository as HttpAuthRepository)
+          .uploadFcmToken(token, accessToken);
+    } catch (e) {
+      debugPrint('FCM token upload failed: $e');
+    }
+  }
+
+  Future<void> _syncFcmToken(CustomerSession currentSession) async {
+    final savedToken = await NotificationService().getFcmToken();
+    if (savedToken != null && savedToken.isNotEmpty) {
+      await _uploadFcmToken(currentSession, savedToken);
+    } else {
+      await NotificationService().fetchFcmToken();
+    }
+  }
+
+  @override
+  void dispose() {
+    NotificationService.onFcmTokenReady = null;
+    super.dispose();
   }
 
   Future<void> _handleAuthenticated(CustomerSession value) async {
@@ -840,6 +865,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
         session = value;
         showAuthentication = false;
       });
+      unawaited(_syncFcmToken(value));
     }
   }
 
@@ -851,6 +877,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   }
 
   Future<void> _signOut() async {
+    session = null;
     await widget.authRepository.logout();
     if (mounted) {
       setState(() {
