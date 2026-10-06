@@ -19,17 +19,17 @@ CurrentLocationAddress addressFromPlacemark(Placemark place) {
   final area = (place.subLocality ?? '').trim();
   final city = (place.locality ?? place.administrativeArea ?? '').trim();
   final rawPostalCode = (place.postalCode ?? '').trim();
-  final pincode = RegExp(r'^\d{6}).hasMatch(rawPostalCode) ? rawPostalCode : '';
+  final pincode = RegExp(r'^\d{6}$').hasMatch(rawPostalCode) ? rawPostalCode : '';
   final label = [area, city].where((part) => part.isNotEmpty).toSet().join(', ');
   return CurrentLocationAddress(
     label: label,
-    address: '', // GPS cannot confirm a house or flat number; customer must enter it.
+    address: '', // GPS cannot confirm the house or flat number.
     city: city,
     pincode: pincode,
   );
 }
 
-/// Resolve a fresh, accurate GPS position. House details must be entered manually.
+/// Use fresh GPS only. The customer must enter and confirm house details.
 Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
   try {
     if (!await Geolocator.isLocationServiceEnabled()) return null;
@@ -43,70 +43,19 @@ Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
       return null;
     }
 
-    Position? position;
-    try {
-      position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 20),
-        ),
-      );
-    } catch (_) {
-      return null;
-    }
-    if (position == null || position.accuracy > 100) return null;
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 20),
+      ),
+    );
+    if (position.accuracy > 100) return null;
 
     final placemarks =
         await placemarkFromCoordinates(position.latitude, position.longitude);
     if (placemarks.isEmpty) return null;
     final result = addressFromPlacemark(placemarks.first);
-    if (result.city.isEmpty) return null;
-    return result;
-  } catch (_) {
-    return null;
-  }
-}
-
-Future<String?> detectCurrentLocationLabel() async =>
-    (await detectCurrentLocationAddress())?.label;
-).hasMatch(rawPostalCode) ? rawPostalCode : '';
-  final label = [area, city].where((part) => part.isNotEmpty).toSet().join(', ');
-  return CurrentLocationAddress(
-    label: label.isNotEmpty ? label : street,
-    address: street.isNotEmpty ? street : (area.isNotEmpty ? area : city),
-    city: city,
-    pincode: pincode,
-  );
-}
-
-/// Resolve GPS coordinates to an address. A missing postal code remains editable.
-Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
-  try {
-    if (!await Geolocator.isLocationServiceEnabled()) return null;
-
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      return null;
-    }
-
-    Position? position;
-    try {
-      position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
-      );
-    } catch (_) {
-      position = await Geolocator.getLastKnownPosition();
-    }
-    if (position == null) return null;
-
-    final placemarks =
-        await placemarkFromCoordinates(position.latitude, position.longitude);
-    if (placemarks.isEmpty) return null;
-    return addressFromPlacemark(placemarks.first);
+    return result.city.isEmpty ? null : result;
   } catch (_) {
     return null;
   }
