@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:955092648214:android:7f7d3e5b82a893ed5e9037",
+        "mobilesdk_app_id": "1:955092648214:android:c8b350bd6191654a5e9037",
         "android_client_info": {
-          "package_name": "com.freshora.app"
+          "package_name": "com.amitprasad.freshora.customer"
         }
       },
       "oauth_client": [],

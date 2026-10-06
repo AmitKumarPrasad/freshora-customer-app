@@ -1,4 +1,4 @@
-package com.freshora.app
+package com.amitprasad.freshora.customer
 
 import io.flutter.embedding.android.FlutterActivity
 

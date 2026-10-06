@@ -4202,7 +4202,7 @@ class _TrackingPageState extends State<TrackingPage> {
                               TileLayer(
                                 urlTemplate:
                                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.freshora.app',
+                                userAgentPackageName: 'com.amitprasad.freshora.customer',
                               ),
                               MarkerLayer(markers: [
                                 Marker(
