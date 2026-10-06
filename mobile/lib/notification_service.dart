@@ -3,7 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Background message handler - must be a top-level function
+// Background message handler must be retained in release builds.
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   await NotificationService._showNotification(
@@ -137,7 +138,7 @@ class NotificationService {
   void _handleNotificationTap(NotificationResponse response) {
     // Handle navigation based on payload
     if (response.payload != null) {
-      _handleNotificationAction({'orderId': response.payload});
+      _handleNotificationAction({'order_id': response.payload});
     }
   }
 
@@ -169,7 +170,7 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    final orderId = data['orderId']?.toString() ?? '';
+    final orderId = data['order_id']?.toString() ?? '';
     await _localNotifications.show(
       orderId.hashCode,
       title,
@@ -181,7 +182,7 @@ class NotificationService {
 
   // Handle notification action
   void _handleNotificationAction(Map<String, dynamic> data) {
-    final orderId = data['orderId'];
+    final orderId = data['order_id'];
     if (orderId != null) {
       // Navigation will be handled by the app's navigation system
       // based on app state and routing
