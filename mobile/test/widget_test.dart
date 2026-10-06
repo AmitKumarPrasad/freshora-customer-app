@@ -263,6 +263,8 @@ void main() {
     await tester.tap(find.text('Explore'));
     await tester.pumpAndSettle();
     final addButton = find.byTooltip('Add to cart').first;
+    await tester.ensureVisible(addButton);
+    await tester.pumpAndSettle();
     await tester.tap(addButton);
     await tester.pumpAndSettle();
 
