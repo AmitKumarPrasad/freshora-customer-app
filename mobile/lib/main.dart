@@ -39,11 +39,16 @@ AuthRepository _createAuthRepository() =>
 
 class CustomerSession {
   const CustomerSession(
-      {required this.phone, required this.name, this.token, this.refreshToken});
+      {required this.phone,
+      required this.name,
+      this.token,
+      this.refreshToken,
+      this.isReviewer = false});
   final String phone;
   final String name;
   final String? token;
   final String? refreshToken;
+  final bool isReviewer;
 }
 
 class Product {
@@ -1672,7 +1677,13 @@ class _AppShellState extends State<AppShell> {
       ),
     ];
     return Scaffold(
-      body: SafeArea(child: pages[tab]),
+      body: SafeArea(child: Column(children: [
+        if (widget.session.isReviewer) MaterialBanner(
+          content: const Text('Reviewer demo: orders are simulated. No payment or real delivery.'),
+          actions: const [SizedBox.shrink()],
+        ),
+        Expanded(child: pages[tab]),
+      ])),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -1817,7 +1828,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                       Flexible(
                           child: Text(
-                              widget.location ?? 'Your local fresh market',
+                              widget.location ?? 'Delivery: Talegaon & PCMC',
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Colors.black54))),
                     ]),
@@ -4500,7 +4511,7 @@ class ProfileInformationPage extends StatelessWidget {
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
             const SizedBox(height: 12),
             const Text(
-                'Fresh fruits and vegetables for Talegaon. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
+                'Fresh fruits and vegetables for Talegaon and PCMC. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
           ],
         ]),
       );
@@ -4925,7 +4936,7 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                     helperText: 'Please enter the exact delivery address.')),
             TextField(
                 controller: city,
-                decoration: const InputDecoration(labelText: 'City')),
+                decoration: const InputDecoration(labelText: 'City', helperText: 'Include Talegaon or your PCMC locality for delivery.')),
             TextField(
                 controller: pincode,
                 keyboardType: TextInputType.number,
@@ -5078,3 +5089,4 @@ class _AddressBookPageState extends State<AddressBookPage> {
               ),
       );
 }
+

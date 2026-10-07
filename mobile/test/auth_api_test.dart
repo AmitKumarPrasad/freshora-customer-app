@@ -57,6 +57,19 @@ void main() {
     expect(session.refreshToken, 'refresh-token');
   });
 
+  test('reviewer mode follows authenticated server response', () async {
+    final repository = HttpAuthRepository(
+      client: MockClient((_) async => http.Response(jsonEncode({
+        'access_token': 'jwt-token',
+        'refresh_token': 'refresh-token',
+        'customer': {'phone': '9876543210', 'name': 'Reviewer', 'is_reviewer': true},
+      }), 200)),
+      baseUrl: 'https://example.test',
+    );
+    expect((await repository.login('9876543210', '654321')).isReviewer, isTrue);
+    expect((await repository.restoreSession())!.isReviewer, isTrue);
+  });
+
   test('login preserves the entered mobile number when customer is omitted', () async {
     final repository = HttpAuthRepository(
       client: MockClient((_) async => http.Response(jsonEncode({
@@ -70,6 +83,7 @@ void main() {
 
     expect(session.phone, '9876543210');
     expect(session.name, 'Talegaon Customer');
+    expect(session.isReviewer, isFalse);
   });
 
   test('session restore preserves saved customer details when omitted by API', () async {
@@ -96,3 +110,4 @@ void main() {
     expect(values['talegaon_fresh_refresh_token'], 'new-refresh');
   });
 }
+
