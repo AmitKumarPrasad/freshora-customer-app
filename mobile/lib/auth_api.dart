@@ -71,6 +71,7 @@ class HttpAuthRepository implements AuthRepository {
           : fallbackName,
       token: body['access_token'],
       refreshToken: body['refresh_token'],
+      isReviewer: customer is Map && customer['is_reviewer'] == true,
     );
   }
 
@@ -176,3 +177,4 @@ class HttpAuthRepository implements AuthRepository {
     throw AuthException(fallback);
   }
 }
+
