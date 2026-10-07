@@ -1678,10 +1678,8 @@ class _AppShellState extends State<AppShell> {
     ];
     return Scaffold(
       body: SafeArea(child: Column(children: [
-        MaterialBanner(
-          content: Text(widget.session.isReviewer
-              ? 'Reviewer demo: orders are simulated. No payment or real delivery.'
-              : 'Delivery available in Talegaon and PCMC. Enter your locality at checkout.'),
+        if (widget.session.isReviewer) MaterialBanner(
+          content: const Text('Reviewer demo: orders are simulated. No payment or real delivery.'),
           actions: const [SizedBox.shrink()],
         ),
         Expanded(child: pages[tab]),
@@ -1830,7 +1828,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                       Flexible(
                           child: Text(
-                              widget.location ?? 'Your local fresh market',
+                              widget.location ?? 'Delivery: Talegaon & PCMC',
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Colors.black54))),
                     ]),
@@ -4938,7 +4936,7 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                     helperText: 'Please enter the exact delivery address.')),
             TextField(
                 controller: city,
-                decoration: const InputDecoration(labelText: 'City / locality', helperText: 'Include Talegaon or your PCMC locality for delivery.')),
+                decoration: const InputDecoration(labelText: 'City', helperText: 'Include Talegaon or your PCMC locality for delivery.')),
             TextField(
                 controller: pincode,
                 keyboardType: TextInputType.number,
