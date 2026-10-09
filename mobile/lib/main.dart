@@ -3250,6 +3250,16 @@ class _CartPageState extends State<CartPage> {
                     const SizedBox(height: 14),
                     SummaryRow(label: 'Subtotal', value: subtotal),
                     SummaryRow(label: 'Delivery Fee', value: delivery),
+                    if (widget.api == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          subtotal >= 199
+                              ? 'Free delivery applied on orders of ₹199 or more.'
+                              : 'Add ₹${(199 - subtotal).toStringAsFixed(0)} for free delivery (₹20 below ₹199).',
+                          style: const TextStyle(fontSize: 12, color: _mutedInk),
+                        ),
+                      ),
                     if (discount > 0)
                       SummaryRow(label: 'Discount ($_activePromoCode)', value: -discount),
                     const SizedBox(height: 30),
