@@ -4563,10 +4563,22 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadProfilePhoto() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_profilePhotoKey);
-    if (mounted && saved != null && saved.isNotEmpty) {
-      setState(() => _profileImageBase64 = saved);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_profilePhotoKey);
+      if (mounted && saved != null && saved.isNotEmpty) {
+        // Ignore corrupt persisted photos rather than failing Account navigation.
+        try {
+          final bytes = base64Decode(saved);
+          if (bytes.isNotEmpty) {
+            setState(() => _profileImageBase64 = saved);
+          }
+        } on FormatException {
+          await prefs.remove(_profilePhotoKey);
+        }
+      }
+    } catch (error) {
+      debugPrint('Could not restore profile photo: $error');
     }
   }
 
