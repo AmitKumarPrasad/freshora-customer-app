@@ -351,9 +351,13 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => error = 'PIN must contain exactly 6 digits.');
       return;
     }
-    if (registerMode && name.text.trim().isEmpty) {
-      setState(() => error = 'Enter your name.');
-      return;
+    if (registerMode) {
+      final fullName = name.text.trim();
+      if (fullName.length < 2 || fullName.length > 60 ||
+          !RegExp(r"^[a-zA-Z][a-zA-Z .'-]*$").hasMatch(fullName)) {
+        setState(() => error = 'Enter a valid full name (2-60 letters).');
+        return;
+      }
     }
     setState(() {
       loading = true;
@@ -453,6 +457,8 @@ class _LoginPageState extends State<LoginPage> {
                         if (registerMode) ...[
                           TextField(
                               controller: name,
+                              maxLength: 60,
+                              textCapitalization: TextCapitalization.words,
                               textInputAction: TextInputAction.next,
                               decoration: const InputDecoration(
                                   labelText: 'Full name',
@@ -463,6 +469,7 @@ class _LoginPageState extends State<LoginPage> {
                         TextField(
                             controller: phone,
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                             maxLength: 10,
                             decoration: const InputDecoration(
                                 labelText: 'Mobile number',
@@ -473,6 +480,7 @@ class _LoginPageState extends State<LoginPage> {
                         TextField(
                           controller: pin,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           maxLength: 6,
                           obscureText: obscure,
                           decoration: InputDecoration(
