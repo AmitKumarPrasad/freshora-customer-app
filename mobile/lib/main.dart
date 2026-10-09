@@ -4916,63 +4916,82 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
     super.dispose();
   }
 
-  bool get validPincode =>
-      pincode.text.trim().length == 6 &&
-      int.tryParse(pincode.text.trim()) != null;
+  bool get validPincode => RegExp(r'^[1-9][0-9]{5}$').hasMatch(pincode.text.trim());
+
+  String? _validate(String? value, String field, int maxLength) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) return '$field is required';
+    if (text.length > maxLength) return 'Maximum $maxLength characters';
+    if (RegExp(r'[<>\\{}]').hasMatch(text)) return 'Invalid characters';
+    return null;
+  }
+
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) => AlertDialog(
         title: Text(widget.existing == null ? 'Add Address' : 'Edit Address'),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
-                controller: label,
-                decoration:
-                    const InputDecoration(labelText: 'Label (Home, Work...)')),
-            TextField(
-                controller: address,
-                decoration: const InputDecoration(
-                    labelText: 'House / flat number and street',
-                    helperText: 'Please enter the exact delivery address.')),
-            TextField(
-                controller: city,
-                decoration: const InputDecoration(labelText: 'City', helperText: 'Include Talegaon or your PCMC locality for delivery.')),
-            TextField(
-                controller: pincode,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                    labelText: 'PIN code',
-                    helperText: 'Confirm the detected PIN code before saving.')),
-            TextField(
-                controller: landmark,
-                decoration:
-                    const InputDecoration(labelText: 'Landmark (optional)')),
-          ]),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                TextFormField(
+                  controller: label,
+                  maxLength: 30,
+                  decoration: const InputDecoration(labelText: 'Label *', hintText: 'Home or Work', border: OutlineInputBorder()),
+                  validator: (v) => _validate(v, 'Label', 30),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: address,
+                  maxLength: 150,
+                  maxLines: 2,
+                  decoration: const InputDecoration(labelText: 'House / flat number and street *', hintText: 'Enter complete delivery address', border: OutlineInputBorder()),
+                  validator: (v) => _validate(v, 'Address', 150),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: city,
+                  maxLength: 60,
+                  decoration: const InputDecoration(labelText: 'City / locality *', hintText: 'Talegaon or PCMC locality', border: OutlineInputBorder()),
+                  validator: (v) => _validate(v, 'City', 60),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: pincode,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'PIN code *', hintText: '6-digit Indian PIN code', border: OutlineInputBorder()),
+                  validator: (_) => validPincode ? null : 'Enter a valid 6-digit PIN code',
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: landmark,
+                  maxLength: 100,
+                  decoration: const InputDecoration(labelText: 'Landmark (optional)', border: OutlineInputBorder()),
+                  validator: (v) => (v ?? '').isNotEmpty && RegExp(r'[<>\\{}]').hasMatch(v!) ? 'Invalid characters' : null,
+                ),
+              ]),
+            ),
+          ),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           FilledButton(
             onPressed: () {
-              if (label.text.trim().isEmpty ||
-                  address.text.trim().isEmpty ||
-                  city.text.trim().isEmpty ||
-                  !validPincode) {
-                return;
-              }
-              Navigator.pop(
-                context,
-                CustomerAddress(
-                  id: widget.existing?.id,
-                  label: label.text.trim(),
-                  fullAddress: address.text.trim(),
-                  city: city.text.trim(),
-                  pincode: pincode.text.trim(),
-                  landmark: landmark.text.trim(),
-                  isDefault: widget.existing?.isDefault ?? false,
-                ),
-              );
+              if (!_formKey.currentState!.validate()) return;
+              Navigator.pop(context, CustomerAddress(
+                id: widget.existing?.id,
+                label: label.text.trim(),
+                fullAddress: address.text.trim(),
+                city: city.text.trim(),
+                pincode: pincode.text.trim(),
+                landmark: landmark.text.trim(),
+                isDefault: widget.existing?.isDefault ?? false,
+              ));
             },
             child: const Text('Save'),
           ),
