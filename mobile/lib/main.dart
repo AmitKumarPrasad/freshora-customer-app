@@ -2238,11 +2238,16 @@ class _ProductsPageState extends State<ProductsPage> {
                                 fontWeight: selected == value
                                     ? FontWeight.w700 : FontWeight.w500,
                               )),
-                          onChanged: (_) => setSheetState(() => selected = value),
+                          onChanged: (_) => setSheetState(() => selected = selected == value ? 'All' : value),
                         )),
                       ],
                     ),
                   ),
+                ),
+                TextButton.icon(
+                  onPressed: () => setSheetState(() => selected = 'All'),
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('Clear filters'),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
