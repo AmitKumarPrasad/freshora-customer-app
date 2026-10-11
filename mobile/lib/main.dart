@@ -2664,16 +2664,22 @@ class ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final assetPath = _assetPathForProduct(product.name);
     final url = product.imageUrl;
+    final decodeSize = (size * MediaQuery.devicePixelRatioOf(context))
+        .ceil().clamp(1, 1024).toInt();
     Widget image;
     if (assetPath != null) {
       image = Image.asset(
         assetPath,
         fit: BoxFit.cover,
+        cacheWidth: decodeSize,
+        cacheHeight: decodeSize,
         errorBuilder: (context, error, stackTrace) => url == null
             ? Icon(product.icon, size: size, color: const Color(0xFF2E9B55))
             : Image.network(
                 url,
                 fit: BoxFit.cover,
+        cacheWidth: decodeSize,
+        cacheHeight: decodeSize,
                 errorBuilder: (context, error, stackTrace) => Icon(product.icon,
                     size: size, color: const Color(0xFF2E9B55)),
               ),
@@ -2682,6 +2688,8 @@ class ProductImage extends StatelessWidget {
       image = Image.network(
         url,
         fit: BoxFit.cover,
+        cacheWidth: decodeSize,
+        cacheHeight: decodeSize,
         loadingBuilder: (context, child, progress) => progress == null
             ? child
             : Center(
@@ -4060,7 +4068,8 @@ class TrackingPage extends StatefulWidget {
   State<TrackingPage> createState() => _TrackingPageState();
 }
 
-class _TrackingPageState extends State<TrackingPage> {
+class _TrackingPageState extends State<TrackingPage>
+    with WidgetsBindingObserver {
   late OrderRecord order;
   bool loading = false;
   String? error;
@@ -4072,18 +4081,37 @@ class _TrackingPageState extends State<TrackingPage> {
   bool _requestingDeliveryOtp = false;
   String? _deliveryOtp;
   Timer? _pollTimer;
+  bool _polling = false;
+  bool _foreground = true;
 
   @override
   void initState() {
     super.initState();
     order = widget.order;
     _refresh();
+    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
     _pollTimer = Timer.periodic(
         const Duration(seconds: 8), (_) => _refreshTrackingAndMessages());
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    _pollTimer?.cancel();
+    if (_foreground) {
+      _startPolling();
+      _refreshTrackingAndMessages();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _chatController.dispose();
     _chatScrollController.dispose();
@@ -4113,10 +4141,11 @@ class _TrackingPageState extends State<TrackingPage> {
   Future<void> _refreshTrackingAndMessages() async {
     final api = widget.api;
     final id = int.tryParse(order.id);
-    if (api == null || id == null || !mounted) return;
+    if (api == null || id == null || !mounted || !_foreground || _polling) return;
+    _polling = true;
     try {
-      final t = await api.getTracking(id);
-      final m = await api.getMessages(id);
+      final t = await api.getTracking(id).timeout(const Duration(seconds: 15));
+      final m = await api.getMessages(id).timeout(const Duration(seconds: 15));
       if (mounted)
         setState(() {
           tracking = t;
@@ -4124,7 +4153,9 @@ class _TrackingPageState extends State<TrackingPage> {
         });
       _scrollChatToBottom();
     } catch (_) {
-      // Silently ignore polling failures.
+      // Silently ignore polling failures; the next foreground poll retries.
+    } finally {
+      _polling = false;
     }
   }
 

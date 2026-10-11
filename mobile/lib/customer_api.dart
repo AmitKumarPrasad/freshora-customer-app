@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -229,16 +230,16 @@ class HttpCustomerRepository {
     });
   }
 
+  String? _checkoutFingerprint;
+  String? _checkoutKey;
+
   Future<OrderRecord> createOrder(
     List<CartItem> cart,
     CustomerAddress address,
     String payment, {
     String? promoCode,
   }) async {
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/customers/me/orders'),
-      headers: _headers,
-      body: jsonEncode({
+    final payload = <String, dynamic>{
         'items': cart.map((item) => {
           'name': item.product.name,
           'unit': item.product.unit,
@@ -248,9 +249,23 @@ class HttpCustomerRepository {
         if (address.id != null) 'address_id': address.id,
         'payment_method': payment,
         if (promoCode != null) 'promo_code': promoCode,
-      }),
+    };
+    final fingerprint = jsonEncode(payload);
+    if (_checkoutFingerprint != fingerprint) {
+      _checkoutFingerprint = fingerprint;
+      final random = Random.secure();
+      _checkoutKey = base64UrlEncode(List<int>.generate(24, (_) => random.nextInt(256)));
+    }
+    payload['idempotency_key'] = _checkoutKey;
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/customers/me/orders'),
+      headers: _headers,
+      body: jsonEncode(payload),
     );
-    return _orderFromApi(_success(response));
+    final order = _orderFromApi(_success(response));
+    _checkoutFingerprint = null;
+    _checkoutKey = null;
+    return order;
   }
 
   Future<String> createPaymentLink(int orderId) async {
@@ -343,3 +358,4 @@ class HttpCustomerRepository {
     _success(response);
   }
 }
+
