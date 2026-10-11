@@ -3237,6 +3237,22 @@ class _CartPageState extends State<CartPage> {
                             : const Text('Apply'),
                       ),
                     ]),
+                    if (_appliedCode != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _applyingPromo ? null : () {
+                            setState(() {
+                              _appliedCode = null;
+                              _promoQuote = null;
+                              _promoError = null;
+                              _promoController.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.close, size: 18),
+                          label: const Text('Remove promo code'),
+                        ),
+                      ),
                     if (widget.api != null &&
                         _appliedCode != null &&
                         !_promoQuoteMatchesCart)
