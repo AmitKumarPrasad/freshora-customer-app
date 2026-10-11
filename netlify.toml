@@ -1,0 +1,3 @@
+# Customer web hosting is disabled; releases use the Flutter Android pipeline.
+[build]
+  ignore = "exit 0"
