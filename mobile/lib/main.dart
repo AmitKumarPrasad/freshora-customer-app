@@ -377,7 +377,7 @@ class _LoginPageState extends State<LoginPage> {
               .register(normalized, pin.text, name.text.trim())
           : await widget.authRepository.login(normalized, pin.text);
       if (!mounted) return;
-      
+      setState(() => loading = false);
       widget.onAuthenticated(session);
     } on AuthException catch (e) {
       if (mounted)
