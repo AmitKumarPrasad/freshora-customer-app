@@ -2108,7 +2108,7 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   final searchController = TextEditingController();
-  String category = 'All';
+  Set<String> selectedCategories = {};
 
   static const leafyKeywords = [
     'spinach',
@@ -2185,11 +2185,11 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   bool matchesCategory(Product product) =>
-      category == 'All' || _categoryFor(product) == category;
+      selectedCategories.isEmpty || selectedCategories.contains(_categoryFor(product));
 
   void _showFilters() {
     final values = _availableCategories;
-    var selected = category;
+    var selected = Set<String>.of(selectedCategories);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -2236,24 +2236,30 @@ class _ProductsPageState extends State<ProductsPage> {
                             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                         const SizedBox(height: 12),
                         ...values.map((value) => CheckboxListTile(
-                          value: selected == value,
+                          value: value == 'All' ? selected.isEmpty : selected.contains(value),
                           activeColor: _brandGreen,
                           controlAffinity: ListTileControlAffinity.leading,
                           contentPadding: EdgeInsets.zero,
                           title: Text(value,
                               style: TextStyle(
-                                color: selected == value ? _brandGreenDark : _ink,
-                                fontWeight: selected == value
+                                color: (value == 'All' ? selected.isEmpty : selected.contains(value)) ? _brandGreenDark : _ink,
+                                fontWeight: (value == 'All' ? selected.isEmpty : selected.contains(value))
                                     ? FontWeight.w700 : FontWeight.w500,
                               )),
-                          onChanged: (_) => setSheetState(() => selected = selected == value ? 'All' : value),
+                          onChanged: (_) => setSheetState(() {
+                            if (value == 'All') {
+                              selected.clear();
+                            } else if (!selected.add(value)) {
+                              selected.remove(value);
+                            }
+                          }),
                         )),
                       ],
                     ),
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () => setSheetState(() => selected = 'All'),
+                  onPressed: () => setSheetState(() => selected.clear()),
                   icon: const Icon(Icons.filter_alt_off_outlined),
                   label: const Text('Clear filters'),
                 ),
@@ -2265,7 +2271,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(58)),
                       onPressed: () {
-                        setState(() => category = selected);
+                        setState(() => selectedCategories = Set<String>.of(selected));
                         Navigator.pop(sheetContext);
                       },
                       child: const Text('Apply Filter'),
@@ -2300,7 +2306,7 @@ class _ProductsPageState extends State<ProductsPage> {
           pinned: true,
           backgroundColor: _surfaceTint,
           surfaceTintColor: Colors.transparent,
-          title: Text(category == 'All' ? 'Explore' : category),
+          title: Text(selectedCategories.isEmpty ? 'Explore' : 'Explore (${selectedCategories.length} filters)'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -2385,17 +2391,23 @@ class _ProductsPageState extends State<ProductsPage> {
                       child: Text(
                         value,
                         style: TextStyle(
-                          color: category == value ? Colors.white : _ink,
+                          color: (value == 'All' ? selectedCategories.isEmpty : selectedCategories.contains(value)) ? Colors.white : _ink,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
-                    selected: category == value,
+                    selected: value == 'All' ? selectedCategories.isEmpty : selectedCategories.contains(value),
                     selectedColor: _brandGreen,
                     backgroundColor: Colors.white,
                     checkmarkColor: Colors.white,
                     side: const BorderSide(color: Color(0xFFD7E0DA)),
-                    onSelected: (_) => setState(() => category = value),
+                    onSelected: (_) => setState(() {
+                      if (value == 'All') {
+                        selectedCategories.clear();
+                      } else if (!selectedCategories.add(value)) {
+                        selectedCategories.remove(value);
+                      }
+                    }),
                   );
                 },
               ),
