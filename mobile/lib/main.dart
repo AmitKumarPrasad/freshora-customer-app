@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -322,6 +323,7 @@ class _LoginPageState extends State<LoginPage> {
   final phone = TextEditingController();
   final pin = TextEditingController();
   final name = TextEditingController();
+  final confirmPin = TextEditingController();
   late bool registerMode;
   bool loading = false, obscure = true;
   String? error;
@@ -337,10 +339,12 @@ class _LoginPageState extends State<LoginPage> {
     phone.dispose();
     pin.dispose();
     name.dispose();
+    confirmPin.dispose();
     super.dispose();
   }
 
   Future<void> submit() async {
+    if (loading) return;
     FocusScope.of(context).unfocus();
     final normalized = phone.text.replaceAll(RegExp(r'\D'), '');
     if (!RegExp(r'^[6-9]\d{9}$').hasMatch(normalized)) {
@@ -351,9 +355,17 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => error = 'PIN must contain exactly 6 digits.');
       return;
     }
-    if (registerMode && name.text.trim().isEmpty) {
-      setState(() => error = 'Enter your name.');
+    if (registerMode && confirmPin.text != pin.text) {
+      setState(() => error = 'PINs do not match. Please confirm your 6-digit PIN.');
       return;
+    }
+    if (registerMode) {
+      final fullName = name.text.trim();
+      if (fullName.length < 2 || fullName.length > 60 ||
+          !RegExp(r"^[a-zA-Z][a-zA-Z .'-]*$").hasMatch(fullName)) {
+        setState(() => error = 'Enter a valid full name (2-60 letters).');
+        return;
+      }
     }
     setState(() {
       loading = true;
@@ -365,7 +377,7 @@ class _LoginPageState extends State<LoginPage> {
               .register(normalized, pin.text, name.text.trim())
           : await widget.authRepository.login(normalized, pin.text);
       if (!mounted) return;
-      
+      setState(() => loading = false);
       widget.onAuthenticated(session);
     } on AuthException catch (e) {
       if (mounted)
@@ -447,12 +459,15 @@ class _LoginPageState extends State<LoginPage> {
                               : (v) => setState(() {
                                     registerMode = v.first;
                                     error = null;
+                                    confirmPin.clear();
                                   }),
                         ),
                         const SizedBox(height: 22),
                         if (registerMode) ...[
                           TextField(
                               controller: name,
+                              maxLength: 60,
+                              textCapitalization: TextCapitalization.words,
                               textInputAction: TextInputAction.next,
                               decoration: const InputDecoration(
                                   labelText: 'Full name',
@@ -463,6 +478,7 @@ class _LoginPageState extends State<LoginPage> {
                         TextField(
                             controller: phone,
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                             maxLength: 10,
                             decoration: const InputDecoration(
                                 labelText: 'Mobile number',
@@ -473,10 +489,13 @@ class _LoginPageState extends State<LoginPage> {
                         TextField(
                           controller: pin,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           maxLength: 6,
                           obscureText: obscure,
                           decoration: InputDecoration(
-                            labelText: '6-digit PIN',
+                            labelText: registerMode ? 'Create 6-digit PIN' : '6-digit PIN',
+                            helperText: registerMode ? 'Choose a PIN you can remember.' : 'Enter the PIN used when you registered.',
+                            helperMaxLines: 2,
                             counterText: '',
                             prefixIcon: const Icon(Icons.lock_outline_rounded),
                             suffixIcon: IconButton(
@@ -487,6 +506,23 @@ class _LoginPageState extends State<LoginPage> {
                                     : Icons.visibility_off_rounded)),
                           ),
                         ),
+                        if (registerMode) ...[
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: confirmPin,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            maxLength: 6,
+                            obscureText: obscure,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) => submit(),
+                            decoration: const InputDecoration(
+                              labelText: 'Confirm 6-digit PIN',
+                              counterText: '',
+                              prefixIcon: Icon(Icons.lock_outline_rounded),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -498,7 +534,7 @@ class _LoginPageState extends State<LoginPage> {
                             SizedBox(width: 10),
                             Expanded(
                                 child: Text(
-                                    'Your PIN is protected with one-way password hashing. Session tokens stay in secure device storage.',
+                                    'Use your mobile number and 6-digit PIN to sign in next time.',
                                     style: TextStyle(fontSize: 12.5))),
                           ]),
                         ),
@@ -2100,7 +2136,7 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   final searchController = TextEditingController();
-  String category = 'All';
+  Set<String> selectedCategories = {};
 
   static const leafyKeywords = [
     'spinach',
@@ -2177,11 +2213,11 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   bool matchesCategory(Product product) =>
-      category == 'All' || _categoryFor(product) == category;
+      selectedCategories.isEmpty || selectedCategories.contains(_categoryFor(product));
 
   void _showFilters() {
     final values = _availableCategories;
-    var selected = category;
+    var selected = Set<String>.of(selectedCategories);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -2228,21 +2264,32 @@ class _ProductsPageState extends State<ProductsPage> {
                             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                         const SizedBox(height: 12),
                         ...values.map((value) => CheckboxListTile(
-                          value: selected == value,
+                          value: value == 'All' ? selected.isEmpty : selected.contains(value),
                           activeColor: _brandGreen,
                           controlAffinity: ListTileControlAffinity.leading,
                           contentPadding: EdgeInsets.zero,
                           title: Text(value,
                               style: TextStyle(
-                                color: selected == value ? _brandGreenDark : _ink,
-                                fontWeight: selected == value
+                                color: (value == 'All' ? selected.isEmpty : selected.contains(value)) ? _brandGreenDark : _ink,
+                                fontWeight: (value == 'All' ? selected.isEmpty : selected.contains(value))
                                     ? FontWeight.w700 : FontWeight.w500,
                               )),
-                          onChanged: (_) => setSheetState(() => selected = value),
+                          onChanged: (_) => setSheetState(() {
+                            if (value == 'All') {
+                              selected.clear();
+                            } else if (!selected.add(value)) {
+                              selected.remove(value);
+                            }
+                          }),
                         )),
                       ],
                     ),
                   ),
+                ),
+                TextButton.icon(
+                  onPressed: () => setSheetState(() => selected.clear()),
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('Clear filters'),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
@@ -2252,7 +2299,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(58)),
                       onPressed: () {
-                        setState(() => category = selected);
+                        setState(() => selectedCategories = Set<String>.of(selected));
                         Navigator.pop(sheetContext);
                       },
                       child: const Text('Apply Filter'),
@@ -2287,7 +2334,7 @@ class _ProductsPageState extends State<ProductsPage> {
           pinned: true,
           backgroundColor: _surfaceTint,
           surfaceTintColor: Colors.transparent,
-          title: Text(category == 'All' ? 'Explore' : category),
+          title: Text(selectedCategories.isEmpty ? 'Explore' : 'Explore (${selectedCategories.length} filters)'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -2372,17 +2419,23 @@ class _ProductsPageState extends State<ProductsPage> {
                       child: Text(
                         value,
                         style: TextStyle(
-                          color: category == value ? Colors.white : _ink,
+                          color: (value == 'All' ? selectedCategories.isEmpty : selectedCategories.contains(value)) ? Colors.white : _ink,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
-                    selected: category == value,
+                    selected: value == 'All' ? selectedCategories.isEmpty : selectedCategories.contains(value),
                     selectedColor: _brandGreen,
                     backgroundColor: Colors.white,
                     checkmarkColor: Colors.white,
                     side: const BorderSide(color: Color(0xFFD7E0DA)),
-                    onSelected: (_) => setState(() => category = value),
+                    onSelected: (_) => setState(() {
+                      if (value == 'All') {
+                        selectedCategories.clear();
+                      } else if (!selectedCategories.add(value)) {
+                        selectedCategories.remove(value);
+                      }
+                    }),
                   );
                 },
               ),
@@ -2611,16 +2664,22 @@ class ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final assetPath = _assetPathForProduct(product.name);
     final url = product.imageUrl;
+    final decodeSize = (size * MediaQuery.devicePixelRatioOf(context))
+        .ceil().clamp(1, 1024).toInt();
     Widget image;
     if (assetPath != null) {
       image = Image.asset(
         assetPath,
         fit: BoxFit.cover,
+        cacheWidth: decodeSize,
+        cacheHeight: decodeSize,
         errorBuilder: (context, error, stackTrace) => url == null
             ? Icon(product.icon, size: size, color: const Color(0xFF2E9B55))
             : Image.network(
                 url,
                 fit: BoxFit.cover,
+        cacheWidth: decodeSize,
+        cacheHeight: decodeSize,
                 errorBuilder: (context, error, stackTrace) => Icon(product.icon,
                     size: size, color: const Color(0xFF2E9B55)),
               ),
@@ -2629,6 +2688,8 @@ class ProductImage extends StatelessWidget {
       image = Image.network(
         url,
         fit: BoxFit.cover,
+        cacheWidth: decodeSize,
+        cacheHeight: decodeSize,
         loadingBuilder: (context, child, progress) => progress == null
             ? child
             : Center(
@@ -2948,7 +3009,7 @@ class _PromoOffer {
 
   double discountFor(double subtotal) {
     if (subtotal < minOrder) return 0;
-    if (flatOff != null) return flatOff!;
+    if (flatOff != null) return flatOff! > subtotal ? subtotal : flatOff!;
     final raw = subtotal * (percentOff ?? 0);
     return maxOff == null ? raw : (raw > maxOff! ? maxOff! : raw);
   }
@@ -2989,12 +3050,17 @@ class _CartPageState extends State<CartPage> {
   PromoQuote? _promoQuote;
   String? _promoError;
   bool _applyingPromo = false;
+  String? _quotedCart;
+
+  String get _cartSnapshot => jsonEncode(widget.cart.map((item) => [
+        item.product.name, item.product.unit, item.product.price, item.quantity,
+      ]).toList());
 
   double get subtotal =>
       widget.cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
   bool get _promoQuoteMatchesCart =>
-      _promoQuote != null && _promoQuote!.subtotal == subtotal;
+      _promoQuote != null && _quotedCart == _cartSnapshot;
 
   String? get _activePromoCode =>
       widget.api == null || _promoQuoteMatchesCart ? _appliedCode : null;
@@ -3033,10 +3099,12 @@ class _CartPageState extends State<CartPage> {
         _promoQuote = null;
       });
       try {
-        final quote = await widget.api!.validatePromo(code, widget.cart);
+        final snapshot = _cartSnapshot;
+        final quote = await widget.api!.validatePromo(code, List<CartItem>.of(widget.cart));
         if (!mounted) return;
         setState(() {
           _promoQuote = quote;
+          _quotedCart = snapshot;
           _appliedCode = quote.promoCode;
         });
       } on CustomerApiException catch (e) {
@@ -3062,7 +3130,7 @@ class _CartPageState extends State<CartPage> {
         _appliedCode = null;
       } else if (subtotal < offer.minOrder) {
         _promoError =
-            'Add ₹${offer.minOrder.toStringAsFixed(0)} more to use this code';
+            'Add ₹${(offer.minOrder - subtotal).toStringAsFixed(0)} more to use this code';
         _appliedCode = null;
       } else {
         _promoError = null;
@@ -3078,6 +3146,7 @@ class _CartPageState extends State<CartPage> {
   }
 
   void _openCheckout() {
+    if (_applyingPromo) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -3224,6 +3293,22 @@ class _CartPageState extends State<CartPage> {
                             : const Text('Apply'),
                       ),
                     ]),
+                    if (_appliedCode != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _applyingPromo ? null : () {
+                            setState(() {
+                              _appliedCode = null;
+                              _promoQuote = null;
+                              _promoError = null;
+                              _promoController.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.close, size: 18),
+                          label: const Text('Remove promo code'),
+                        ),
+                      ),
                     if (widget.api != null &&
                         _appliedCode != null &&
                         !_promoQuoteMatchesCart)
@@ -3237,6 +3322,15 @@ class _CartPageState extends State<CartPage> {
                     const SizedBox(height: 14),
                     SummaryRow(label: 'Subtotal', value: subtotal),
                     SummaryRow(label: 'Delivery Fee', value: delivery),
+                    Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          delivery == 0
+                              ? 'Free delivery applied on orders of ₹199 or more.'
+                              : 'Add ₹${(199 - subtotal).toStringAsFixed(0)} for free delivery (₹20 below ₹199).',
+                          style: const TextStyle(fontSize: 12, color: _mutedInk),
+                        ),
+                      ),
                     if (discount > 0)
                       SummaryRow(label: 'Discount ($_activePromoCode)', value: -discount),
                     const SizedBox(height: 30),
@@ -3250,7 +3344,7 @@ class _CartPageState extends State<CartPage> {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: widget.syncError == null ? _openCheckout : null,
+                onPressed: widget.syncError == null && !_applyingPromo ? _openCheckout : null,
                 style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(58)),
                 child: Row(
@@ -3462,6 +3556,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
             'Pay in cash at delivery. UPI payments will start shortly.',
             style: TextStyle(color: Colors.black54),
           ),
+          if (widget.promoCode != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.local_offer_outlined,
+                    color: _brandGreen),
+                title: const Text('Promo code applied'),
+                subtitle: Text(widget.promoCode!),
+              ),
+            ),
+          ],
           SummaryRow(label: 'Total', value: widget.total, bold: true),
           const SizedBox(height: 18),
           FilledButton(
@@ -3963,7 +4068,8 @@ class TrackingPage extends StatefulWidget {
   State<TrackingPage> createState() => _TrackingPageState();
 }
 
-class _TrackingPageState extends State<TrackingPage> {
+class _TrackingPageState extends State<TrackingPage>
+    with WidgetsBindingObserver {
   late OrderRecord order;
   bool loading = false;
   String? error;
@@ -3975,18 +4081,37 @@ class _TrackingPageState extends State<TrackingPage> {
   bool _requestingDeliveryOtp = false;
   String? _deliveryOtp;
   Timer? _pollTimer;
+  bool _polling = false;
+  bool _foreground = true;
 
   @override
   void initState() {
     super.initState();
     order = widget.order;
     _refresh();
+    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
     _pollTimer = Timer.periodic(
         const Duration(seconds: 8), (_) => _refreshTrackingAndMessages());
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    _pollTimer?.cancel();
+    if (_foreground) {
+      _startPolling();
+      _refreshTrackingAndMessages();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _chatController.dispose();
     _chatScrollController.dispose();
@@ -4016,10 +4141,11 @@ class _TrackingPageState extends State<TrackingPage> {
   Future<void> _refreshTrackingAndMessages() async {
     final api = widget.api;
     final id = int.tryParse(order.id);
-    if (api == null || id == null || !mounted) return;
+    if (api == null || id == null || !mounted || !_foreground || _polling) return;
+    _polling = true;
     try {
-      final t = await api.getTracking(id);
-      final m = await api.getMessages(id);
+      final t = await api.getTracking(id).timeout(const Duration(seconds: 15));
+      final m = await api.getMessages(id).timeout(const Duration(seconds: 15));
       if (mounted)
         setState(() {
           tracking = t;
@@ -4027,7 +4153,9 @@ class _TrackingPageState extends State<TrackingPage> {
         });
       _scrollChatToBottom();
     } catch (_) {
-      // Silently ignore polling failures.
+      // Silently ignore polling failures; the next foreground poll retries.
+    } finally {
+      _polling = false;
     }
   }
 
@@ -4558,10 +4686,27 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadProfilePhoto() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_profilePhotoKey);
-    if (mounted && saved != null && saved.isNotEmpty) {
-      setState(() => _profileImageBase64 = saved);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_profilePhotoKey);
+      if (mounted && saved != null && saved.isNotEmpty) {
+        // Ignore corrupt persisted photos rather than failing Account navigation.
+        try {
+          final bytes = base64Decode(saved);
+          final codec = await ui.instantiateImageCodec(bytes);
+          try {
+            final frame = await codec.getNextFrame();
+            frame.image.dispose();
+          } finally {
+            codec.dispose();
+          }
+          if (mounted) setState(() => _profileImageBase64 = saved);
+        } catch (_) {
+          await prefs.remove(_profilePhotoKey);
+        }
+      }
+    } catch (error) {
+      debugPrint('Could not restore profile photo: $error');
     }
   }
 
@@ -4916,63 +5061,82 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
     super.dispose();
   }
 
-  bool get validPincode =>
-      pincode.text.trim().length == 6 &&
-      int.tryParse(pincode.text.trim()) != null;
+  bool get validPincode => RegExp(r'^[1-9][0-9]{5}$').hasMatch(pincode.text.trim());
+
+  String? _validate(String? value, String field, int maxLength) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) return '$field is required';
+    if (text.length > maxLength) return 'Maximum $maxLength characters';
+    if (RegExp(r'[<>\\{}]').hasMatch(text)) return 'Invalid characters';
+    return null;
+  }
+
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) => AlertDialog(
         title: Text(widget.existing == null ? 'Add Address' : 'Edit Address'),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
-                controller: label,
-                decoration:
-                    const InputDecoration(labelText: 'Label (Home, Work...)')),
-            TextField(
-                controller: address,
-                decoration: const InputDecoration(
-                    labelText: 'House / flat number and street',
-                    helperText: 'Please enter the exact delivery address.')),
-            TextField(
-                controller: city,
-                decoration: const InputDecoration(labelText: 'City', helperText: 'Include Talegaon or your PCMC locality for delivery.')),
-            TextField(
-                controller: pincode,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                    labelText: 'PIN code',
-                    helperText: 'Confirm the detected PIN code before saving.')),
-            TextField(
-                controller: landmark,
-                decoration:
-                    const InputDecoration(labelText: 'Landmark (optional)')),
-          ]),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                TextFormField(
+                  controller: label,
+                  maxLength: 30,
+                  decoration: const InputDecoration(labelText: 'Label *', hintText: 'Home or Work', border: OutlineInputBorder()),
+                  validator: (v) => _validate(v, 'Label', 30),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: address,
+                  maxLength: 150,
+                  maxLines: 2,
+                  decoration: const InputDecoration(labelText: 'House / flat number and street *', hintText: 'Enter complete delivery address', border: OutlineInputBorder()),
+                  validator: (v) => _validate(v, 'Address', 150),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: city,
+                  maxLength: 60,
+                  decoration: const InputDecoration(labelText: 'City / locality *', hintText: 'Talegaon or PCMC locality', border: OutlineInputBorder()),
+                  validator: (v) => _validate(v, 'City', 60),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: pincode,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'PIN code *', hintText: '6-digit Indian PIN code', border: OutlineInputBorder()),
+                  validator: (_) => validPincode ? null : 'Enter a valid 6-digit PIN code',
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: landmark,
+                  maxLength: 100,
+                  decoration: const InputDecoration(labelText: 'Landmark (optional)', border: OutlineInputBorder()),
+                  validator: (v) => (v ?? '').isNotEmpty && RegExp(r'[<>\\{}]').hasMatch(v!) ? 'Invalid characters' : null,
+                ),
+              ]),
+            ),
+          ),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           FilledButton(
             onPressed: () {
-              if (label.text.trim().isEmpty ||
-                  address.text.trim().isEmpty ||
-                  city.text.trim().isEmpty ||
-                  !validPincode) {
-                return;
-              }
-              Navigator.pop(
-                context,
-                CustomerAddress(
-                  id: widget.existing?.id,
-                  label: label.text.trim(),
-                  fullAddress: address.text.trim(),
-                  city: city.text.trim(),
-                  pincode: pincode.text.trim(),
-                  landmark: landmark.text.trim(),
-                  isDefault: widget.existing?.isDefault ?? false,
-                ),
-              );
+              if (!_formKey.currentState!.validate()) return;
+              Navigator.pop(context, CustomerAddress(
+                id: widget.existing?.id,
+                label: label.text.trim(),
+                fullAddress: address.text.trim(),
+                city: city.text.trim(),
+                pincode: pincode.text.trim(),
+                landmark: landmark.text.trim(),
+                isDefault: widget.existing?.isDefault ?? false,
+              ));
             },
             child: const Text('Save'),
           ),
@@ -5089,4 +5253,5 @@ class _AddressBookPageState extends State<AddressBookPage> {
               ),
       );
 }
+
 

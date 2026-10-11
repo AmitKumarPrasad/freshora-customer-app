@@ -247,6 +247,21 @@ void main() {
     expect(find.text('Amul Taaza Milk'), findsOneWidget);
     expect(find.text('Tomato'), findsNothing);
     expect(find.text("Lay's Cream & Onion Chips"), findsNothing);
+    final snacks = find.widgetWithText(ChoiceChip, 'Snacks');
+    await tester.ensureVisible(snacks);
+    await tester.tap(snacks);
+    await tester.pumpAndSettle();
+    expect(find.text('Amul Taaza Milk'), findsOneWidget);
+    expect(find.text("Lay's Cream & Onion Chips"), findsOneWidget);
+    await tester.ensureVisible(dairyFilter);
+    await tester.tap(dairyFilter);
+    await tester.pumpAndSettle();
+    expect(find.text('Amul Taaza Milk'), findsNothing);
+    await tester.ensureVisible(snacks);
+    await tester.tap(snacks);
+    await tester.pumpAndSettle();
+    expect(find.text('Tomato'), findsWidgets);
+    expect(find.text('Amul Taaza Milk'), findsOneWidget);
   });
 
   testWidgets('customer cart persists across app sessions', (tester) async {
@@ -371,5 +386,81 @@ void main() {
 
     expect(find.text('Discount (FRESH10)'), findsOneWidget);
     expect(find.text('₹110'), findsOneWidget);
+    final remove = find.text('Remove promo code');
+    await tester.ensureVisible(remove);
+    await tester.tap(remove);
+    await tester.pumpAndSettle();
+    expect(find.text('Discount (FRESH10)'), findsNothing);
+    expect(find.text('₹120'), findsOneWidget);
+    expect(find.textContaining('Add ₹99 for free delivery'), findsOneWidget);
   });
+  testWidgets('registration requires matching PIN and accepts valid account', (tester) async {
+    CustomerSession? session;
+    await tester.pumpWidget(MaterialApp(home: LoginPage(
+      initialRegisterMode: true,
+      onAuthenticated: (value) => session = value,
+    )));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Amit Prasad');
+    await tester.enterText(fields.at(1), '9876543210');
+    await tester.enterText(fields.at(2), '123456');
+    await tester.enterText(fields.at(3), '654321');
+    final submit = find.widgetWithText(FilledButton, 'Create secure account');
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(session, isNull);
+    expect(find.textContaining('PINs do not match'), findsOneWidget);
+    await tester.enterText(fields.at(3), '123456');
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(session?.phone, '9876543210');
+  });
+
+  testWidgets('address rejects empty fields and invalid PIN before saving', (tester) async {
+    final addresses = <CustomerAddress>[];
+    await tester.pumpWidget(MaterialApp(home: AddressBookPage(
+      addresses: addresses, onChanged: () {},
+    )));
+    await tester.tap(find.text('Add Address'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(addresses, isEmpty);
+    expect(find.text('Label is required'), findsOneWidget);
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'Home');
+    await tester.enterText(fields.at(1), 'Flat 2, Main Road');
+    await tester.enterText(fields.at(2), 'Talegaon');
+    await tester.enterText(fields.at(3), '000000');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(addresses, isEmpty);
+    expect(find.text('Enter a valid 6-digit PIN code'), findsOneWidget);
+    await tester.enterText(fields.at(3), '410507');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(addresses.single.pincode, '410507');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Account ignores valid base64 containing invalid image bytes', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'freshora_profile_photo_9876543210': base64Encode([1, 2, 3]),
+    });
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: ProfilePage(
+      session: const CustomerSession(phone: '9876543210', name: 'Amit', token: 'test'),
+      addresses: const [], onManageAddresses: () {}, onManageFavorites: () {},
+      onViewOrders: () {},
+    ))));
+    await tester.pumpAndSettle();
+    expect(find.text('Amit'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('freshora_profile_photo_9876543210'), isNull);
+  });
+
 }
+
