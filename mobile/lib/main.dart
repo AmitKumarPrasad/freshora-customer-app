@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -322,6 +323,7 @@ class _LoginPageState extends State<LoginPage> {
   final phone = TextEditingController();
   final pin = TextEditingController();
   final name = TextEditingController();
+  final confirmPin = TextEditingController();
   late bool registerMode;
   bool loading = false, obscure = true;
   String? error;
@@ -337,10 +339,12 @@ class _LoginPageState extends State<LoginPage> {
     phone.dispose();
     pin.dispose();
     name.dispose();
+    confirmPin.dispose();
     super.dispose();
   }
 
   Future<void> submit() async {
+    if (loading) return;
     FocusScope.of(context).unfocus();
     final normalized = phone.text.replaceAll(RegExp(r'\D'), '');
     if (!RegExp(r'^[6-9]\d{9}$').hasMatch(normalized)) {
@@ -349,6 +353,10 @@ class _LoginPageState extends State<LoginPage> {
     }
     if (!RegExp(r'^\d{6}$').hasMatch(pin.text)) {
       setState(() => error = 'PIN must contain exactly 6 digits.');
+      return;
+    }
+    if (registerMode && confirmPin.text != pin.text) {
+      setState(() => error = 'PINs do not match. Please confirm your 6-digit PIN.');
       return;
     }
     if (registerMode) {
@@ -451,6 +459,7 @@ class _LoginPageState extends State<LoginPage> {
                               : (v) => setState(() {
                                     registerMode = v.first;
                                     error = null;
+                                    confirmPin.clear();
                                   }),
                         ),
                         const SizedBox(height: 22),
@@ -484,7 +493,9 @@ class _LoginPageState extends State<LoginPage> {
                           maxLength: 6,
                           obscureText: obscure,
                           decoration: InputDecoration(
-                            labelText: '6-digit PIN',
+                            labelText: registerMode ? 'Create 6-digit PIN' : '6-digit PIN',
+                            helperText: registerMode ? 'Choose a PIN you can remember.' : 'Enter the PIN used when you registered.',
+                            helperMaxLines: 2,
                             counterText: '',
                             prefixIcon: const Icon(Icons.lock_outline_rounded),
                             suffixIcon: IconButton(
@@ -495,6 +506,23 @@ class _LoginPageState extends State<LoginPage> {
                                     : Icons.visibility_off_rounded)),
                           ),
                         ),
+                        if (registerMode) ...[
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: confirmPin,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            maxLength: 6,
+                            obscureText: obscure,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) => submit(),
+                            decoration: const InputDecoration(
+                              labelText: 'Confirm 6-digit PIN',
+                              counterText: '',
+                              prefixIcon: Icon(Icons.lock_outline_rounded),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -506,7 +534,7 @@ class _LoginPageState extends State<LoginPage> {
                             SizedBox(width: 10),
                             Expanded(
                                 child: Text(
-                                    'Your PIN is protected with one-way password hashing. Session tokens stay in secure device storage.',
+                                    'Use your mobile number and 6-digit PIN to sign in next time.',
                                     style: TextStyle(fontSize: 12.5))),
                           ]),
                         ),
@@ -2973,7 +3001,7 @@ class _PromoOffer {
 
   double discountFor(double subtotal) {
     if (subtotal < minOrder) return 0;
-    if (flatOff != null) return flatOff!;
+    if (flatOff != null) return flatOff! > subtotal ? subtotal : flatOff!;
     final raw = subtotal * (percentOff ?? 0);
     return maxOff == null ? raw : (raw > maxOff! ? maxOff! : raw);
   }
@@ -3014,12 +3042,17 @@ class _CartPageState extends State<CartPage> {
   PromoQuote? _promoQuote;
   String? _promoError;
   bool _applyingPromo = false;
+  String? _quotedCart;
+
+  String get _cartSnapshot => jsonEncode(widget.cart.map((item) => [
+        item.product.name, item.product.unit, item.product.price, item.quantity,
+      ]).toList());
 
   double get subtotal =>
       widget.cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
   bool get _promoQuoteMatchesCart =>
-      _promoQuote != null && _promoQuote!.subtotal == subtotal;
+      _promoQuote != null && _quotedCart == _cartSnapshot;
 
   String? get _activePromoCode =>
       widget.api == null || _promoQuoteMatchesCart ? _appliedCode : null;
@@ -3058,10 +3091,12 @@ class _CartPageState extends State<CartPage> {
         _promoQuote = null;
       });
       try {
-        final quote = await widget.api!.validatePromo(code, widget.cart);
+        final snapshot = _cartSnapshot;
+        final quote = await widget.api!.validatePromo(code, List<CartItem>.of(widget.cart));
         if (!mounted) return;
         setState(() {
           _promoQuote = quote;
+          _quotedCart = snapshot;
           _appliedCode = quote.promoCode;
         });
       } on CustomerApiException catch (e) {
@@ -3087,7 +3122,7 @@ class _CartPageState extends State<CartPage> {
         _appliedCode = null;
       } else if (subtotal < offer.minOrder) {
         _promoError =
-            'Add ₹${offer.minOrder.toStringAsFixed(0)} more to use this code';
+            'Add ₹${(offer.minOrder - subtotal).toStringAsFixed(0)} more to use this code';
         _appliedCode = null;
       } else {
         _promoError = null;
@@ -3103,6 +3138,7 @@ class _CartPageState extends State<CartPage> {
   }
 
   void _openCheckout() {
+    if (_applyingPromo) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -3278,11 +3314,10 @@ class _CartPageState extends State<CartPage> {
                     const SizedBox(height: 14),
                     SummaryRow(label: 'Subtotal', value: subtotal),
                     SummaryRow(label: 'Delivery Fee', value: delivery),
-                    if (widget.api == null)
-                      Padding(
+                    Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          subtotal >= 199
+                          delivery == 0
                               ? 'Free delivery applied on orders of ₹199 or more.'
                               : 'Add ₹${(199 - subtotal).toStringAsFixed(0)} for free delivery (₹20 below ₹199).',
                           style: const TextStyle(fontSize: 12, color: _mutedInk),
@@ -3301,7 +3336,7 @@ class _CartPageState extends State<CartPage> {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: widget.syncError == null ? _openCheckout : null,
+                onPressed: widget.syncError == null && !_applyingPromo ? _openCheckout : null,
                 style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(58)),
                 child: Row(
@@ -4627,10 +4662,15 @@ class _ProfilePageState extends State<ProfilePage> {
         // Ignore corrupt persisted photos rather than failing Account navigation.
         try {
           final bytes = base64Decode(saved);
-          if (bytes.isNotEmpty) {
-            setState(() => _profileImageBase64 = saved);
+          final codec = await ui.instantiateImageCodec(bytes);
+          try {
+            final frame = await codec.getNextFrame();
+            frame.image.dispose();
+          } finally {
+            codec.dispose();
           }
-        } on FormatException {
+          if (mounted) setState(() => _profileImageBase64 = saved);
+        } catch (_) {
           await prefs.remove(_profilePhotoKey);
         }
       }
@@ -5182,4 +5222,5 @@ class _AddressBookPageState extends State<AddressBookPage> {
               ),
       );
 }
+
 
