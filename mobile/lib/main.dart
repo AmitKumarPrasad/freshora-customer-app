@@ -3501,6 +3501,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
             'Pay in cash at delivery. UPI payments will start shortly.',
             style: TextStyle(color: Colors.black54),
           ),
+          if (widget.promoCode != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.local_offer_outlined,
+                    color: _brandGreen),
+                title: const Text('Promo code applied'),
+                subtitle: Text(widget.promoCode!),
+              ),
+            ),
+          ],
           SummaryRow(label: 'Total', value: widget.total, bold: true),
           const SizedBox(height: 18),
           FilledButton(
