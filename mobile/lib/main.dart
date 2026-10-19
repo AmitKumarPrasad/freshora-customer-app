@@ -2215,6 +2215,13 @@ class _ProductsPageState extends State<ProductsPage> {
   bool matchesCategory(Product product) =>
       selectedCategories.isEmpty || selectedCategories.contains(_categoryFor(product));
 
+  void _clearSearchAndFilters() {
+    setState(() {
+      searchController.clear();
+      selectedCategories.clear();
+    });
+  }
+
   void _showFilters() {
     final values = _availableCategories;
     var selected = Set<String>.of(selectedCategories);
@@ -2367,10 +2374,16 @@ class _ProductsPageState extends State<ProductsPage> {
               child: TextField(
                 controller: searchController,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search milk, atta, snacks, fruits...',
-                  prefixIcon: Icon(Icons.search_rounded),
-                  suffixIcon: Icon(Icons.mic_none_rounded),
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => setState(searchController.clear),
+                        ),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -2384,10 +2397,11 @@ class _ProductsPageState extends State<ProductsPage> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
             child: Row(
               children: [
-                const Text('Shop by category',
-                    style:
-                        TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-                const Spacer(),
+                const Expanded(
+                  child: Text('Shop by category',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(width: 8),
                 Text('${filtered.length} items',
                     style:
                         const TextStyle(color: Colors.black54, fontSize: 12)),
@@ -2454,12 +2468,33 @@ class _ProductsPageState extends State<ProductsPage> {
                   child: ErrorCard(
                       message: widget.error!, onRetry: widget.onRetry)))
         else if (filtered.isEmpty)
-          const SliverToBoxAdapter(
-              child: Padding(
-                  padding: EdgeInsets.all(28),
-                  child: Center(
-                      child: Text(
-                          'No products match your search. Try another category or search term.'))))
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                children: [
+                  Text(
+                    widget.products.isEmpty
+                        ? 'No products available right now. Please try again.'
+                        : 'No products match your search. Try another category or search term.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  if (query.isNotEmpty || selectedCategories.isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: _clearSearchAndFilters,
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: const Text('Clear search and filters'),
+                    )
+                  else
+                    OutlinedButton(
+                      onPressed: widget.onRetry,
+                      child: const Text('Refresh products'),
+                    ),
+                ],
+              ),
+            ),
+          )
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
