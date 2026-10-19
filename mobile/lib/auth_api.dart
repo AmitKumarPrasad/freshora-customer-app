@@ -121,10 +121,13 @@ class HttpAuthRepository implements AuthRepository {
     final response = await _client.post(Uri.parse('$_baseUrl/auth/refresh'),
       headers: const {'Accept':'application/json','Content-Type':'application/json'},
       body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (response.statusCode == 401 || response.statusCode == 403) {
       await _clear();
       return null;
     }
+    // A temporary outage or rate limit does not invalidate the saved session.
+    // Preserve the refresh token so a later retry can recover without a login.
+    _ensureSuccess(response, fallback: 'Could not restore your session. Please retry.');
     final session = await _sessionFromResponse(
       response,
       fallbackPhone: phone,
