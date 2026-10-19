@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -148,6 +149,41 @@ void main() {
       expect(values.containsKey('talegaon_fresh_access_token'), isFalse);
     });
   }
+  test('logout clears local credentials when backend never responds', () async {
+    values['talegaon_fresh_refresh_token'] = 'refresh-token';
+    values['talegaon_fresh_access_token'] = 'access-token';
+    final response = Completer<http.Response>();
+    final requestStarted = Completer<void>();
+    final repository = HttpAuthRepository(
+      client: MockClient((_) {
+        requestStarted.complete();
+        return response.future;
+      }),
+      baseUrl: 'https://example.test',
+      logoutTimeout: const Duration(milliseconds: 50),
+    );
+
+    final logout = repository.logout();
+    await requestStarted.future;
+    await logout.timeout(const Duration(seconds: 1));
+
+    expect(values.containsKey('talegaon_fresh_refresh_token'), isFalse);
+    expect(values.containsKey('talegaon_fresh_access_token'), isFalse);
+    response.complete(http.Response('{}', 200));
+  });
+
+  test('logout clears local credentials when backend request throws', () async {
+    values['talegaon_fresh_refresh_token'] = 'refresh-token';
+    values['talegaon_fresh_access_token'] = 'access-token';
+    final repository = HttpAuthRepository(
+      client: MockClient((_) async => throw http.ClientException('offline')),
+      baseUrl: 'https://example.test',
+    );
+
+    await repository.logout();
+
+    expect(values.containsKey('talegaon_fresh_refresh_token'), isFalse);
+    expect(values.containsKey('talegaon_fresh_access_token'), isFalse);
+  });
 
 }
-
