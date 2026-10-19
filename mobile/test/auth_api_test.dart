@@ -109,5 +109,45 @@ void main() {
     expect(values['talegaon_fresh_access_token'], 'new-access');
     expect(values['talegaon_fresh_refresh_token'], 'new-refresh');
   });
+  for (final status in [429, 500, 503]) {
+    test('refresh HTTP $status preserves credentials and supports retry', () async {
+      values['talegaon_fresh_access_token'] = 'old-access';
+      values['talegaon_fresh_refresh_token'] = 'old-refresh';
+      var requests = 0;
+      final repository = HttpAuthRepository(
+        client: MockClient((_) async {
+          requests++;
+          if (requests == 1) return http.Response('{}', status);
+          return http.Response(jsonEncode({
+            'access_token': 'new-access',
+            'refresh_token': 'new-refresh',
+          }), 200);
+        }),
+        baseUrl: 'https://example.test',
+      );
+
+      await expectLater(repository.restoreSession(), throwsA(isA<AuthException>()));
+      expect(values['talegaon_fresh_refresh_token'], 'old-refresh');
+      expect(values['talegaon_fresh_access_token'], 'old-access');
+      expect((await repository.restoreSession())?.token, 'new-access');
+      expect(requests, 2);
+    });
+  }
+
+  for (final status in [401, 403]) {
+    test('refresh HTTP $status clears rejected credentials', () async {
+      values['talegaon_fresh_refresh_token'] = 'rejected-refresh';
+      values['talegaon_fresh_access_token'] = 'old-access';
+      final repository = HttpAuthRepository(
+        client: MockClient((_) async => http.Response('{}', status)),
+        baseUrl: 'https://example.test',
+      );
+
+      expect(await repository.restoreSession(), isNull);
+      expect(values.containsKey('talegaon_fresh_refresh_token'), isFalse);
+      expect(values.containsKey('talegaon_fresh_access_token'), isFalse);
+    });
+  }
+
 }
 
