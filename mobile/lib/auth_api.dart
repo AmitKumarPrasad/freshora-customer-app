@@ -29,7 +29,7 @@ class DemoAuthRepository implements AuthRepository {
 }
 
 class HttpAuthRepository implements AuthRepository {
-  HttpAuthRepository({http.Client? client, String? baseUrl, FlutterSecureStorage? storage})
+  HttpAuthRepository({http.Client? client, String? baseUrl, FlutterSecureStorage? storage, this.logoutTimeout = const Duration(seconds: 5)})
       : _client = client ?? http.Client(),
         _storage = storage ?? const FlutterSecureStorage(),
         _baseUrl = (baseUrl ?? const String.fromEnvironment('AUTH_BASE_URL', defaultValue: 'https://talegaon-fresh-ai-backend.onrender.com')).replaceFirst(RegExp(r'/+$'), '');
@@ -37,6 +37,7 @@ class HttpAuthRepository implements AuthRepository {
   final http.Client _client;
   final FlutterSecureStorage _storage;
   final String _baseUrl;
+  final Duration logoutTimeout;
   Future<CustomerSession?>? _refreshInFlight;
 
   Future<String> _deviceId() async {
@@ -135,17 +136,21 @@ class HttpAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    final refresh = await _storage.read(key: 'talegaon_fresh_refresh_token');
-    if (refresh != null && refresh.isNotEmpty) {
-      try {
-        await _client.post(Uri.parse('$_baseUrl/auth/logout-session'),
-          headers: const {'Accept':'application/json','Content-Type':'application/json'},
-          body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
-      } catch (_) {
-        // Best-effort server revocation; local credentials are cleared below.
-      }
+    try {
+      await _revokeSession().timeout(logoutTimeout);
+    } catch (_) {
+      // Remote revocation is best effort, including when the server stalls.
+    } finally {
+      await _clear();
     }
-    await _clear();
+  }
+
+  Future<void> _revokeSession() async {
+    final refresh = await _storage.read(key: 'talegaon_fresh_refresh_token');
+    if (refresh == null || refresh.isEmpty) return;
+    await _client.post(Uri.parse('$_baseUrl/auth/logout-session'),
+      headers: const {'Accept':'application/json','Content-Type':'application/json'},
+      body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
   }
 
   Future<void> uploadFcmToken(String fcmToken, String accessToken) async {
