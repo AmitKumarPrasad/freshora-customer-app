@@ -3028,7 +3028,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 /// Local promo codes: code -> (percentage off 0-1, flat max cap in rupees, flat discount if percent is null).
 const Map<String, _PromoOffer> _promoCodes = {
   'FRESH10': _PromoOffer(percentOff: 0.10, maxOff: 50),
-  'WELCOME50': _PromoOffer(flatOff: 50, minOrder: 199),
+  'WELCOME50': _PromoOffer(flatOff: 50, minOrder: 499, firstOrderOnly: true),
   'FRESHORA20': _PromoOffer(percentOff: 0.20, maxOff: 100, minOrder: 499),
 };
 
@@ -3036,11 +3036,13 @@ double _deliveryFeeFor(double subtotal) => subtotal < 199 ? 20 : 0;
 
 class _PromoOffer {
   const _PromoOffer(
-      {this.percentOff, this.maxOff, this.flatOff, this.minOrder = 0});
+      {this.percentOff, this.maxOff, this.flatOff, this.minOrder = 0,
+      this.firstOrderOnly = false});
   final double? percentOff;
   final double? maxOff;
   final double? flatOff;
   final double minOrder;
+  final bool firstOrderOnly;
 
   double discountFor(double subtotal) {
     if (subtotal < minOrder) return 0;
@@ -3166,6 +3168,9 @@ class _CartPageState extends State<CartPage> {
       } else if (subtotal < offer.minOrder) {
         _promoError =
             'Add ₹${(offer.minOrder - subtotal).toStringAsFixed(0)} more to use this code';
+        _appliedCode = null;
+      } else if (offer.firstOrderOnly) {
+        _promoError = 'Sign in to verify first-order eligibility for this code.';
         _appliedCode = null;
       } else {
         _promoError = null;
@@ -3310,10 +3315,16 @@ class _CartPageState extends State<CartPage> {
                           decoration: InputDecoration(
                             labelText: 'Promo code',
                             errorText: _promoError,
+                            errorMaxLines: 3,
+                            helperText: _promoController.text.trim().toUpperCase() == 'WELCOME50'
+                                ? '₹50 off your first order. Minimum product subtotal ₹499. Eligibility verified at checkout.'
+                                : null,
+                            helperMaxLines: 3,
                             suffixIcon: _activePromoCode != null
                                 ? const Icon(Icons.check_circle, color: _brandGreen)
                                 : null,
                           ),
+                          onChanged: (_) => setState(() {}),
                           onSubmitted: (_) => _applyPromo(),
                         ),
                       ),
