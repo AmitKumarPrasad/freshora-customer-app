@@ -11,7 +11,7 @@ void main() {
 
     expect(find.text('FRESHORA AI'), findsOneWidget);
     expect(
-      find.textContaining('I can help with orders, tracking, products, and checkout.'),
+      find.textContaining('I can help with orders, tracking, products, checkout, and cancellations.'),
       findsOneWidget,
     );
     expect(find.byTooltip('Send'), findsOneWidget);
