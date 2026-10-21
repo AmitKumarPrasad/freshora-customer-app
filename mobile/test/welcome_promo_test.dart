@@ -29,6 +29,31 @@ Future<void> applyWelcome(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('empty cart has continue shopping action', (tester) async {
+    var continued = false;
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: CartPage(
+      cart: const [], onIncrement: (_) {}, onDecrement: (_) {}, onRemove: (_) {},
+      addresses: const [], onContinueShopping: () => continued = true,
+      onOrderPlaced: (_, __, ___, ____) async => OrderRecord(id: '1', total: 0, payment: 'COD', address: 'Talegaon', createdAt: DateTime(2026)),
+    ))));
+    await tester.tap(find.text('Continue shopping'));
+    expect(continued, isTrue);
+  });
+
+  testWidgets('SHOP200 applies at 200 and shows remaining subtotal below it', (tester) async {
+    await tester.pumpWidget(shop200Cart(200));
+    await tester.enterText(find.byType(TextField), 'SHOP200');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(find.text('Discount (SHOP200)'), findsOneWidget);
+    expect(find.text('₹180'), findsOneWidget);
+    await tester.pumpWidget(shop200Cart(199));
+    await tester.enterText(find.byType(TextField), 'SHOP200');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add ₹1 more to use this code'), findsOneWidget);
+  });
+
   testWidgets('local welcome promo requires product subtotal 499', (tester) async {
     await tester.pumpWidget(cart(498));
     await applyWelcome(tester);
@@ -77,3 +102,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 }
+
+
+Widget shop200Cart(double price) => MaterialApp(
+  home: Scaffold(body: CartPage(
+    cart: [CartItem(Product(name: 'Test basket', unit: '1 pack', price: price, icon: Icons.circle), 1)],
+    onIncrement: (_) {}, onDecrement: (_) {}, onRemove: (_) {},
+    addresses: const [], onContinueShopping: () {},
+    onOrderPlaced: (_, __, ___, ____) async => OrderRecord(
+      id: '1', total: price, payment: 'COD', address: 'Talegaon', createdAt: DateTime(2026)),
+  )),
+);
