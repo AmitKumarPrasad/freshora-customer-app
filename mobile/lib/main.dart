@@ -1854,7 +1854,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                       Flexible(
                           child: Text(
-                              widget.location ?? 'Delivery: Talegaon & PCMC',
+                              widget.location ?? 'Delivery across Pune',
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Colors.black54))),
                     ]),
@@ -3218,10 +3218,16 @@ class _CartPageState extends State<CartPage> {
                         const SizedBox(height: 8),
                         const Text('Add fresh products to get started.'),
                         const SizedBox(height: 20),
-                        FilledButton.icon(
-                          onPressed: widget.onContinueShopping,
-                          icon: const Icon(Icons.shopping_basket_outlined),
-                          label: const Text('Continue shopping'),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: widget.onContinueShopping,
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(56),
+                            ),
+                            icon: const Icon(Icons.shopping_basket_outlined),
+                            label: const Text('Start shopping'),
+                          ),
                         ),
                       ],
                     ),
@@ -3998,6 +4004,10 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
               subtitle: Text(order.address),
             )),
             const SizedBox(height: 14),
+            OrderCancelAction(
+                order: order,
+                api: widget.api,
+                onUpdated: (updated) => setState(() => order = updated)),
             OrderPaymentActions(
                 order: order,
                 api: widget.api,
@@ -4014,6 +4024,114 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
           ],
         ),
       );
+}
+
+
+class OrderCancelAction extends StatefulWidget {
+  const OrderCancelAction({
+    super.key,
+    required this.order,
+    required this.api,
+    required this.onUpdated,
+  });
+
+  final OrderRecord order;
+  final HttpCustomerRepository? api;
+  final ValueChanged<OrderRecord> onUpdated;
+
+  @override
+  State<OrderCancelAction> createState() => _OrderCancelActionState();
+}
+
+class _OrderCancelActionState extends State<OrderCancelAction> {
+  bool busy = false;
+  String? error;
+
+  static const _cancellableStatuses = {
+    'PENDING',
+    'ADDRESS_CONFIRMED',
+    'PAYMENT_PENDING',
+    'CONFIRMED',
+  };
+
+  Future<void> _cancel() async {
+    final api = widget.api;
+    final id = int.tryParse(widget.order.id);
+    if (api == null || id == null || busy) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel this order?'),
+        content: Text('Order #${widget.order.id} will be cancelled.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep order'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm cancellation'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      final updated = await api.cancelOrder(id);
+      if (!mounted) return;
+      widget.onUpdated(updated);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order cancelled successfully.')),
+      );
+    } on CustomerApiException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => error = 'Could not cancel the order. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.api == null ||
+        !_cancellableStatuses.contains(widget.order.status.toUpperCase())) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(error!, style: const TextStyle(color: Colors.red)),
+          ),
+        OutlinedButton.icon(
+          onPressed: busy ? null : _cancel,
+          icon: busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.cancel_outlined),
+          label: Text(busy ? 'Cancelling…' : 'Cancel order'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red.shade700,
+            minimumSize: const Size.fromHeight(52),
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
 }
 
 class OrderPaymentActions extends StatefulWidget {
@@ -4686,7 +4804,7 @@ class ProfileInformationPage extends StatelessWidget {
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
             const SizedBox(height: 12),
             const Text(
-                'Fresh fruits and vegetables for Talegaon and PCMC. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
+                'Fresh fruits and vegetables delivered across Pune. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
           ],
         ]),
       );
@@ -5147,7 +5265,7 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                 TextFormField(
                   controller: city,
                   maxLength: 60,
-                  decoration: const InputDecoration(labelText: 'City / locality *', hintText: 'Talegaon or PCMC locality', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: 'City / locality *', hintText: 'e.g. Kothrud, Hadapsar, or Hinjawadi', border: OutlineInputBorder()),
                   validator: (v) => _validate(v, 'City', 60),
                 ),
                 const SizedBox(height: 12),
