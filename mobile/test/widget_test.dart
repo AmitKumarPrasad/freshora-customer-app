@@ -142,6 +142,55 @@ void main() {
     }
   });
 
+  testWidgets('customer cancellation confirms and updates order safely', (tester) async {
+    var cancelRequested = false;
+    final api = HttpCustomerRepository(
+      token: 'test-token',
+      baseUrl: 'https://example.test',
+      client: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/customers/me/orders/42/cancel');
+        cancelRequested = true;
+        return http.Response(jsonEncode({
+          'order_id': 42,
+          'status': 'CANCELLED',
+          'total': 100,
+          'payment_method': 'COD',
+          'address': 'Kothrud, Pune, 411038',
+          'created_at': '2026-10-21T08:00:00+00:00',
+          'items': [],
+          'delivery_fee': 20,
+          'discount_amount': 0,
+        }), 200);
+      }),
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: OrderDetailsPage(
+        order: OrderRecord(
+          id: '42',
+          total: 100,
+          payment: 'COD',
+          address: 'Kothrud, Pune, 411038',
+          createdAt: DateTime(2026, 10, 21),
+          status: 'CONFIRMED',
+        ),
+        api: api,
+      ),
+    ));
+    final cancel = find.text('Cancel order');
+    await tester.ensureVisible(cancel);
+    await tester.tap(cancel);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm cancellation'));
+    await tester.pumpAndSettle();
+
+    expect(cancelRequested, isTrue);
+    expect(find.textContaining('CANCELLED'), findsOneWidget);
+    expect(find.text('Cancel order'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('customer can manage saved addresses', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
