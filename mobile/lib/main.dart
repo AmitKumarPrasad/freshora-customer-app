@@ -3854,11 +3854,16 @@ class _OrdersPageState extends State<OrdersPage> {
                           ' • ₹' +
                           order.total.toStringAsFixed(0)),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => OrderDetailsPage(
-                                  order: order, api: widget.api))),
+                            builder: (_) =>
+                                OrderDetailsPage(order: order, api: widget.api),
+                          ),
+                        );
+                        if (mounted) await _refreshOrders();
+                      },
                     ))),
             ],
           ),
@@ -3962,8 +3967,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                 leading: const Icon(Icons.receipt_long_outlined),
                 title: Text('#' + order.id,
                     style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle:
-                    Text(order.payment + ' • ' + _formatDate(order.createdAt)),
+                subtitle: Text(
+                  order.status + ' • ' + order.payment + ' • ' + _formatDate(order.createdAt),
+                ),
               ),
             ),
             const SizedBox(height: 16),
