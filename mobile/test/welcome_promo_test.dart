@@ -29,15 +29,16 @@ Future<void> applyWelcome(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('empty cart has continue shopping action', (tester) async {
+  testWidgets('empty cart shows Start shopping without errors', (tester) async {
     var continued = false;
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: CartPage(
       cart: const [], onIncrement: (_) {}, onDecrement: (_) {}, onRemove: (_) {},
       addresses: const [], onContinueShopping: () => continued = true,
       onOrderPlaced: (_, __, ___, ____) async => OrderRecord(id: '1', total: 0, payment: 'COD', address: 'Talegaon', createdAt: DateTime(2026)),
     ))));
-    await tester.tap(find.text('Continue shopping'));
+    await tester.tap(find.text('Start shopping'));
     expect(continued, isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('SHOP200 applies at 200 and shows remaining subtotal below it', (tester) async {
