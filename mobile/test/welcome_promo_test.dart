@@ -54,8 +54,8 @@ void main() {
     expect(find.text('Add ₹1 more to use this code'), findsOneWidget);
   });
 
-  testWidgets('local welcome promo requires product subtotal 499', (tester) async {
-    await tester.pumpWidget(cart(498));
+  testWidgets('local welcome promo requires product subtotal 500', (tester) async {
+    await tester.pumpWidget(cart(499));
     await applyWelcome(tester);
     expect(find.text('Add ₹1 more to use this code'), findsOneWidget);
     expect(find.text('Discount (WELCOME50)'), findsNothing);
@@ -63,7 +63,7 @@ void main() {
 
   testWidgets('local welcome promo cannot assume first-order eligibility',
       (tester) async {
-    await tester.pumpWidget(cart(499));
+    await tester.pumpWidget(cart(500));
     await applyWelcome(tester);
     expect(find.text('Sign in to verify first-order eligibility for this code.'),
       findsOneWidget);
@@ -81,24 +81,24 @@ void main() {
           'detail': 'WELCOME50 is only valid on your first order.',
         }), 400);
       }));
-    await tester.pumpWidget(cart(499, api: api));
+    await tester.pumpWidget(cart(500, api: api));
     await applyWelcome(tester);
     expect(find.text('WELCOME50 is only valid on your first order.'), findsOneWidget);
     expect(find.text('Discount (WELCOME50)'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('welcome promo uses authoritative 50 discount at 499',
+  testWidgets('welcome promo uses authoritative 50 discount at 500',
       (tester) async {
     final api = HttpCustomerRepository(token: 'test', baseUrl: 'https://example.test',
       client: MockClient((request) async => http.Response(jsonEncode({
-        'promo_code': 'WELCOME50', 'subtotal': 499, 'delivery_fee': 0,
-        'discount_amount': 50, 'total': 449,
+        'promo_code': 'WELCOME50', 'subtotal': 500, 'delivery_fee': 0,
+        'discount_amount': 50, 'total': 450,
       }), 200)));
     await tester.pumpWidget(cart(499, api: api));
     await applyWelcome(tester);
     expect(find.text('Discount (WELCOME50)'), findsOneWidget);
-    expect(find.text('₹449'), findsOneWidget);
+    expect(find.text('₹450'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
