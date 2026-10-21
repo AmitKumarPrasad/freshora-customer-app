@@ -120,6 +120,28 @@ void main() {
     expect(find.text('9876543210'), findsOneWidget);
   });
 
+  testWidgets('main navigation buttons do not throw', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppShell(
+          repository: FakeProductRepository(),
+          session: const CustomerSession(
+            phone: '9876543210',
+            name: 'Pune Customer',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final label in ['Explore', 'Cart', 'Orders', 'AI', 'Account', 'Shop']) {
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'Tapping $label must not close the app');
+    }
+  });
+
   testWidgets('customer can manage saved addresses', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
