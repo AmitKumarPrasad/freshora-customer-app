@@ -307,6 +307,14 @@ class HttpCustomerRepository {
     _success(response);
   }
 
+  Future<OrderRecord> cancelOrder(int orderId) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/customers/me/orders/$orderId/cancel'),
+      headers: _headers,
+    );
+    return _orderFromApi(_success(response));
+  }
+
   Future<OrderRecord> getOrder(int orderId) async {
     final response = await _client.get(Uri.parse("$_baseUrl/customers/me/orders/$orderId"), headers: _headers);
     return _orderFromApi(_success(response));
