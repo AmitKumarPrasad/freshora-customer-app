@@ -562,15 +562,6 @@ class _LoginPageState extends State<LoginPage> {
                                   ? 'Create secure account'
                                   : 'Sign in'),
                         ),
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const AdminLoginPage())),
-                          icon: const Icon(Icons.storefront_outlined, size: 18),
-                          label: const Text('Store Admin Login'),
-                        ),
                       ]),
                 ),
               ),
