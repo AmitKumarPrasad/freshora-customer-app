@@ -81,7 +81,7 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
   final scrollController = ScrollController();
   final messages = <_AiMessage>[
     const _AiMessage(
-      text: 'Hi! 👋 I’m your FRESHORA assistant. I can help with orders, tracking, products, and checkout.',
+      text: 'Hi! 👋 I’m your FRESHORA assistant. I can help with orders, tracking, products, checkout, and cancellations.',
       fromUser: false,
     ),
   ];
@@ -93,6 +93,7 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
     'Track my latest order',
     'Show my order details',
     'How do I place an order?',
+    'How do I cancel an order?',
   ];
 
   @override
