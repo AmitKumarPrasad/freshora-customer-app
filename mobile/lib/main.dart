@@ -3626,6 +3626,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             onPressed: widget.addresses.isEmpty || placingOrder || savingAddress
                 ? null
                 : () async {
+                    if (placingOrder) return;
                     setState(() => placingOrder = true);
                     try {
                       final order = await widget.onOrderPlaced(
