@@ -69,4 +69,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Order Created — Payment Pending'), findsOneWidget);
   });
+
+  testWidgets('rapid duplicate checkout callback submits only once', (tester) async {
+    final result = Completer<OrderRecord>();
+    var calls = 0;
+    await tester.pumpWidget(MaterialApp(home: CheckoutPage(
+      total: 80,
+      addresses: [CustomerAddress(label: 'Home', fullAddress: 'Main Road', city: 'Talegaon', pincode: '410507')],
+      onContinueShopping: () {},
+      onOrderPlaced: (_, __, ___, ____) {
+        calls++;
+        return result.future;
+      },
+    )));
+    final place = find.widgetWithText(FilledButton, 'Place Order');
+    await tester.ensureVisible(place);
+    final callback = tester.widget<FilledButton>(place).onPressed!;
+
+    // Simulate two events before Flutter rebuilds the disabled button.
+    callback();
+    callback();
+    await tester.pump();
+
+    expect(calls, 1);
+    expect(find.text('Placing order…'), findsOneWidget);
+
+    result.complete(pendingOrder());
+    await tester.pumpAndSettle();
+    expect(find.text('Order Created — Payment Pending'), findsOneWidget);
+  });
+
 }

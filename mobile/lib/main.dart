@@ -1144,6 +1144,7 @@ class _AppShellState extends State<AppShell> {
     super.initState();
     customerApi = HttpCustomerRepository(
       token: widget.session.token ?? '',
+      checkoutScope: widget.session.phone,
       refreshAccessToken: widget.refreshAccessToken,
     );
     _loadProducts().then((_) => _loadCart());
@@ -3626,6 +3627,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             onPressed: widget.addresses.isEmpty || placingOrder || savingAddress
                 ? null
                 : () async {
+                    if (placingOrder) return;
                     setState(() => placingOrder = true);
                     try {
                       final order = await widget.onOrderPlaced(
