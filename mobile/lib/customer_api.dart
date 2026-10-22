@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart';
 import 'refreshing_client.dart';
@@ -89,6 +90,7 @@ class OrderChatMessage {
 class HttpCustomerRepository {
   HttpCustomerRepository({
     required this.token,
+    this.checkoutScope,
     http.Client? client,
     String? baseUrl,
     Future<String?> Function()? refreshAccessToken,
@@ -101,6 +103,8 @@ class HttpCustomerRepository {
         )).replaceFirst(RegExp(r'/+$'), '');
 
   final String token;
+  /// Stable per-account scope used to recover an uncertain checkout after restart.
+  final String? checkoutScope;
   final http.Client _client;
   final String _baseUrl;
   Future<void> _cartWrites = Future<void>.value();
@@ -233,6 +237,48 @@ class HttpCustomerRepository {
   String? _checkoutFingerprint;
   String? _checkoutKey;
 
+  String? get _checkoutStorageKey => checkoutScope == null
+      ? null
+      : 'freshora_pending_checkout_'
+          '${base64UrlEncode(utf8.encode(checkoutScope!)).replaceAll('=', '')}';
+
+  Future<void> _prepareCheckoutKey(String fingerprint) async {
+    if (_checkoutFingerprint == fingerprint && _checkoutKey != null) return;
+
+    final storageKey = _checkoutStorageKey;
+    if (storageKey != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(storageKey);
+      if (raw != null) {
+        try {
+          final saved = jsonDecode(raw);
+          if (saved is Map &&
+              saved['fingerprint'] == fingerprint &&
+              saved['key'] is String &&
+              (saved['key'] as String).isNotEmpty) {
+            _checkoutFingerprint = fingerprint;
+            _checkoutKey = saved['key'] as String;
+            return;
+          }
+        } on FormatException {
+          // Ignore invalid local retry state and generate a fresh key.
+        }
+      }
+    }
+
+    final random = Random.secure();
+    final key = base64UrlEncode(List<int>.generate(24, (_) => random.nextInt(256)));
+    _checkoutFingerprint = fingerprint;
+    _checkoutKey = key;
+    if (storageKey != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        storageKey,
+        jsonEncode({'fingerprint': fingerprint, 'key': key}),
+      );
+    }
+  }
+
   Future<OrderRecord> createOrder(
     List<CartItem> cart,
     CustomerAddress address,
@@ -251,11 +297,7 @@ class HttpCustomerRepository {
         if (promoCode != null) 'promo_code': promoCode,
     };
     final fingerprint = jsonEncode(payload);
-    if (_checkoutFingerprint != fingerprint) {
-      _checkoutFingerprint = fingerprint;
-      final random = Random.secure();
-      _checkoutKey = base64UrlEncode(List<int>.generate(24, (_) => random.nextInt(256)));
-    }
+    await _prepareCheckoutKey(fingerprint);
     payload['idempotency_key'] = _checkoutKey;
     final response = await _client.post(
       Uri.parse('$_baseUrl/customers/me/orders'),
@@ -263,6 +305,11 @@ class HttpCustomerRepository {
       body: jsonEncode(payload),
     );
     final order = _orderFromApi(_success(response));
+    final storageKey = _checkoutStorageKey;
+    if (storageKey != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(storageKey);
+    }
     _checkoutFingerprint = null;
     _checkoutKey = null;
     return order;
