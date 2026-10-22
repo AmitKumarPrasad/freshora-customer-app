@@ -1144,6 +1144,7 @@ class _AppShellState extends State<AppShell> {
     super.initState();
     customerApi = HttpCustomerRepository(
       token: widget.session.token ?? '',
+      checkoutScope: widget.session.phone,
       refreshAccessToken: widget.refreshAccessToken,
     );
     _loadProducts().then((_) => _loadCart());
