@@ -24,8 +24,6 @@ void main() {
     expect(keys[0], keys[1]);
     expect(keys[1], isNot(keys[2]));
   });
-}
-
 
   test('retry after repository restart reuses pending checkout key', () async {
     SharedPreferences.setMockInitialValues({});
@@ -89,3 +87,4 @@ void main() {
     await laterOrder.createOrder(cart, address, 'COD');
     expect(keys[2], isNot(keys[1]));
   });
+}
