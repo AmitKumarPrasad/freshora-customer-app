@@ -8,6 +8,9 @@ import 'main.dart';
 abstract class AuthRepository {
   Future<CustomerSession> register(String phone, String pin, String name);
   Future<CustomerSession> login(String phone, String pin);
+  Future<CustomerSession?> loginWithGoogle(String idToken);
+  Future<void> requestGoogleOtp(String idToken, String phone);
+  Future<CustomerSession> completeGoogleRegistration({required String idToken, required String phone, required String otp, required String name, required String pin});
   Future<CustomerSession?> restoreSession();
   Future<void> logout();
 }
@@ -24,6 +27,9 @@ class DemoAuthRepository implements AuthRepository {
     if (pin != '123456') throw const AuthException('Invalid mobile number or PIN.');
     return CustomerSession(phone: phone, name: 'Talegaon Customer', token: 'demo-token', refreshToken: 'demo-refresh');
   }
+  @override Future<CustomerSession?> loginWithGoogle(String idToken) async => throw const AuthException('Google sign-in is available in the live app only.');
+  @override Future<void> requestGoogleOtp(String idToken, String phone) async => throw const AuthException('Google sign-in is available in the live app only.');
+  @override Future<CustomerSession> completeGoogleRegistration({required String idToken, required String phone, required String otp, required String name, required String pin}) async => throw const AuthException('Google sign-in is available in the live app only.');
   @override Future<CustomerSession?> restoreSession() async => null;
   @override Future<void> logout() async {}
 }
