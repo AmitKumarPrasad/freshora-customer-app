@@ -28,6 +28,85 @@ void main() {
       }
     },
   );
+
+  test('Google login asks for verified phone before linking a new identity', () async {
+    values.clear();
+    final repository = HttpAuthRepository(
+      client: MockClient((request) async {
+        expect(request.url.path, '/auth/google/login');
+        expect(jsonDecode(request.body), containsPair('id_token', 'google-id-token'));
+        expect(jsonDecode(request.body), contains('device_id'));
+        return http.Response(jsonEncode({
+          'needs_phone_verification': true,
+          'email': 'customer@example.com',
+          'name': 'Customer',
+        }), 200);
+      }),
+      baseUrl: 'https://example.test',
+    );
+
+    expect(await repository.loginWithGoogle('google-id-token'), isNull);
+    expect(values.containsKey('talegaon_fresh_access_token'), isFalse);
+  });
+
+  test('Google linked login stores the backend customer session', () async {
+    values.clear();
+    final repository = HttpAuthRepository(
+      client: MockClient((request) async => http.Response(jsonEncode({
+        'access_token': 'google-access',
+        'refresh_token': 'google-refresh',
+        'customer': {'phone': '9876543210', 'name': 'Google Customer'},
+      }), 200)),
+      baseUrl: 'https://example.test',
+    );
+
+    final session = await repository.loginWithGoogle('google-id-token');
+
+    expect(session?.phone, '9876543210');
+    expect(values['talegaon_fresh_access_token'], 'google-access');
+    expect(values['talegaon_fresh_refresh_token'], 'google-refresh');
+  });
+
+  test('Google phone verification and account completion use backend endpoints', () async {
+    values.clear();
+    var call = 0;
+    final repository = HttpAuthRepository(
+      client: MockClient((request) async {
+        call++;
+        if (call == 1) {
+          expect(request.url.path, '/auth/google/otp');
+          expect(jsonDecode(request.body), containsPair('phone', '9876543210'));
+          return http.Response('{"status":"sent"}', 200);
+        }
+        expect(request.url.path, '/auth/google/register');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['id_token'], 'google-id-token');
+        expect(body['otp'], '123456');
+        expect(body['pin'], '654321');
+        expect(body['device_id'], isA<String>());
+        return http.Response(jsonEncode({
+          'access_token': 'new-access',
+          'refresh_token': 'new-refresh',
+          'customer': {'phone': '9876543210', 'name': 'New Customer'},
+        }), 200);
+      }),
+      baseUrl: 'https://example.test',
+    );
+
+    await repository.requestGoogleOtp('google-id-token', '9876543210');
+    final session = await repository.completeGoogleRegistration(
+      idToken: 'google-id-token',
+      phone: '9876543210',
+      otp: '123456',
+      name: 'New Customer',
+      pin: '654321',
+    );
+
+    expect(call, 2);
+    expect(session.phone, '9876543210');
+    expect(values['talegaon_fresh_access_token'], 'new-access');
+  });
+
   test('demo repository supports PIN registration', () async {
     const repository = DemoAuthRepository();
     final session = await repository.register('9876543210', '123456', 'Test Customer');
