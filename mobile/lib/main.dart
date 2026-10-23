@@ -10,8 +10,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'auth_api.dart';
+import 'google_phone_verification_dialog.dart';
 import 'ai_assistant.dart';
 import 'customer_api.dart';
 import 'product_api.dart';
@@ -325,6 +327,7 @@ class _LoginPageState extends State<LoginPage> {
   final confirmPin = TextEditingController();
   late bool registerMode;
   bool loading = false, obscure = true;
+  bool _googleInitialized = false;
   String? error;
 
   @override
@@ -390,6 +393,73 @@ class _LoginPageState extends State<LoginPage> {
           loading = false;
           error = 'Something went wrong. Please try again.';
         });
+    }
+  }
+
+
+  Future<void> continueWithGoogle() async {
+    if (loading) return;
+    final clientId = const String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID').trim();
+    if (clientId.isEmpty) {
+      setState(() => error = 'Google sign-in is being configured. Please use phone/PIN for now.');
+      return;
+    }
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final google = GoogleSignIn.instance;
+      if (!_googleInitialized) {
+        await google.initialize(serverClientId: clientId);
+        _googleInitialized = true;
+      }
+      final account = await google.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const AuthException('Google did not return a sign-in token. Please retry.');
+      }
+      final session = await widget.authRepository.loginWithGoogle(idToken);
+      if (!mounted) return;
+      if (session != null) {
+        setState(() => loading = false);
+        widget.onAuthenticated(session);
+        return;
+      }
+
+      setState(() => loading = false);
+      CustomerSession? linkedSession;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => GooglePhoneVerificationDialog(
+          email: account.email,
+          initialName: account.displayName ?? '',
+          onSendOtp: (phone) =>
+              widget.authRepository.requestGoogleOtp(idToken, phone),
+          onComplete: (phone, otp, name, pin) async {
+            linkedSession = await widget.authRepository.completeGoogleRegistration(
+              idToken: idToken,
+              phone: phone,
+              otp: otp,
+              name: name,
+              pin: pin,
+            );
+          },
+        ),
+      );
+      if (!mounted) return;
+      if (linkedSession != null) widget.onAuthenticated(linkedSession!);
+    } on AuthException catch (e) {
+      if (mounted) setState(() {
+        loading = false;
+        error = e.message;
+      });
+    } catch (_) {
+      if (mounted) setState(() {
+        loading = false;
+        error = 'Google sign-in was cancelled or could not be completed.';
+      });
     }
   }
 
@@ -461,7 +531,32 @@ class _LoginPageState extends State<LoginPage> {
                                     confirmPin.clear();
                                   }),
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: loading ? null : continueWithGoogle,
+                          icon: const Text(
+                            'G',
+                            style: TextStyle(
+                              color: Color(0xFF4285F4),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          label: const Text('Continue with Google'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'or continue with phone and PIN',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: 16),
                         if (registerMode) ...[
                           TextField(
                               controller: name,
