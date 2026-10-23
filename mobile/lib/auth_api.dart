@@ -113,6 +113,67 @@ class HttpAuthRepository implements AuthRepository {
     return session;
   }
 
+
+  @override
+  Future<CustomerSession?> loginWithGoogle(String idToken) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/auth/google/login'),
+      headers: const {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: jsonEncode({'id_token': idToken, 'device_id': await _deviceId()}),
+    );
+    _ensureSuccess(response, fallback: 'Google sign-in failed.');
+    final body = jsonDecode(response.body);
+    if (body is Map && body['needs_phone_verification'] == true) {
+      return null;
+    }
+    final session = await _sessionFromResponse(response);
+    if (session.phone.isEmpty) {
+      throw const AuthException('Customer phone verification is required.');
+    }
+    await _save(session);
+    return session;
+  }
+
+  @override
+  Future<void> requestGoogleOtp(String idToken, String phone) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/auth/google/otp'),
+      headers: const {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: jsonEncode({'id_token': idToken, 'phone': phone}),
+    );
+    _ensureSuccess(response, fallback: 'Could not send the verification code.');
+  }
+
+  @override
+  Future<CustomerSession> completeGoogleRegistration({
+    required String idToken,
+    required String phone,
+    required String otp,
+    required String name,
+    required String pin,
+  }) async {
+    final payload = <String, dynamic>{
+      'id_token': idToken,
+      'phone': phone,
+      'otp': otp,
+      'name': name,
+      'device_id': await _deviceId(),
+    };
+    if (pin.isNotEmpty) payload['pin'] = pin;
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/auth/google/register'),
+      headers: const {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+    final session = await _sessionFromResponse(
+      response,
+      fallbackPhone: phone,
+      fallbackName: name,
+    );
+    await _save(session);
+    return session;
+  }
+
   @override
   Future<CustomerSession?> restoreSession() =>
       _refreshInFlight ??= _restoreSessionOnce().whenComplete(() {
