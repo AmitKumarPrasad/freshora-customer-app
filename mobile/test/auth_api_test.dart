@@ -1,21 +1,33 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talegaon_fresh/auth_api.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final values = <String, String>{};
+  var failDeviceIdRead = false;
+
+  setUp(() {
+    values.clear();
+    failDeviceIdRead = false;
+    SharedPreferences.setMockInitialValues({});
+  });
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
     (call) async {
       final args = Map<String, dynamic>.from(call.arguments as Map? ?? const {});
       switch (call.method) {
         case 'read':
+          if (failDeviceIdRead && args['key'] == 'talegaon_fresh_device_id') {
+            throw PlatformException(code: 'secure_storage_unavailable');
+          }
           return values[args['key'] as String];
         case 'write':
           values[args['key'] as String] = args['value'] as String;
@@ -28,6 +40,52 @@ void main() {
       }
     },
   );
+  for (final isRegistration in [false, true]) {
+    test('secure-storage device ID failure does not block ${isRegistration ? 'registration' : 'login'} request', () async {
+      failDeviceIdRead = true;
+      var requestReachedBackend = false;
+      final client = MockClient((request) async {
+        requestReachedBackend = true;
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['device_id'], isA<String>());
+        expect((body['device_id'] as String).length, greaterThanOrEqualTo(16));
+        expect(request.url.path, isRegistration ? '/auth/register' : '/auth/login');
+        return http.Response(jsonEncode({
+          'access_token': 'jwt-token',
+          'refresh_token': 'refresh-token',
+          'customer': {'phone': '9876543210', 'name': 'Test Customer'},
+        }), 200);
+      });
+      final repository = HttpAuthRepository(client: client, baseUrl: 'https://example.test');
+
+      if (isRegistration) {
+        await repository.register('9876543210', '654321', 'Test Customer');
+      } else {
+        await repository.login('9876543210', '654321');
+      }
+
+      expect(requestReachedBackend, isTrue);
+    });
+  }
+
+  test('login reports a useful message when the network is unavailable', () async {
+    final repository = HttpAuthRepository(
+      client: MockClient((_) async => throw const SocketException('offline')),
+      baseUrl: 'https://example.test',
+    );
+
+    await expectLater(
+      repository.login('9876543210', '654321'),
+      throwsA(
+        isA<AuthException>().having(
+          (error) => error.message,
+          'message',
+          contains('No internet connection'),
+        ),
+      ),
+    );
+  });
+
   test('demo repository supports PIN registration', () async {
     const repository = DemoAuthRepository();
     final session = await repository.register('9876543210', '123456', 'Test Customer');

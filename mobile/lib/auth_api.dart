@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart';
 
@@ -41,13 +44,57 @@ class HttpAuthRepository implements AuthRepository {
   Future<CustomerSession?>? _refreshInFlight;
 
   Future<String> _deviceId() async {
+    // Device identifiers are not secrets. Keep this stable identifier in
+    // SharedPreferences so an Android Keystore problem cannot prevent the
+    // login/register request from ever reaching the backend.
     const key = 'talegaon_fresh_device_id';
-    final existing = await _storage.read(key: key);
-    if (existing != null && existing.length >= 16) return existing;
-    final bytes = List<int>.generate(32, (_) => Random.secure().nextInt(256));
-    final value = base64UrlEncode(bytes).replaceAll('=', '');
-    await _storage.write(key: key, value: value);
-    return value;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final existing = preferences.getString(key);
+      if (existing != null && existing.length >= 16) return existing;
+
+      // Migrate existing installs from the old secure-storage location.
+      String? legacy;
+      try {
+        legacy = await _storage.read(key: key);
+      } catch (_) {
+        // Secure storage may be unavailable on some Play Store installs.
+      }
+      if (legacy != null && legacy.length >= 16) {
+        await preferences.setString(key, legacy);
+        return legacy;
+      }
+
+      final bytes = List<int>.generate(32, (_) => Random.secure().nextInt(256));
+      final value = base64UrlEncode(bytes).replaceAll('=', '');
+      final saved = await preferences.setString(key, value);
+      if (!saved) {
+        throw const AuthException('Could not prepare this device. Please restart the app and try again.');
+      }
+      return value;
+    } on AuthException {
+      rethrow;
+    } catch (_) {
+      throw const AuthException('Could not prepare this device. Please update the app, restart your phone, and try again.');
+    }
+  }
+
+  Future<http.Response> _postAuth(String path, Map<String, dynamic> body) async {
+    try {
+      return await _client
+          .post(
+            Uri.parse('$_baseUrl$path'),
+            headers: const {'Accept': 'application/json', 'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 30));
+    } on TimeoutException {
+      throw const AuthException('The server took too long to respond. Check your internet and try again. If creating an account, try signing in before registering again.');
+    } on SocketException {
+      throw const AuthException('No internet connection. Connect to the internet and try again.');
+    } on http.ClientException {
+      throw const AuthException('Could not connect to FRESHORA. Check your internet connection and try again.');
+    }
   }
 
   Future<CustomerSession> _sessionFromResponse(
@@ -77,17 +124,30 @@ class HttpAuthRepository implements AuthRepository {
   }
 
   Future<void> _save(CustomerSession session) async {
-    await _storage.write(key: 'talegaon_fresh_access_token', value: session.token);
-    await _storage.write(key: 'talegaon_fresh_refresh_token', value: session.refreshToken);
-    await _storage.write(key: 'talegaon_fresh_phone', value: session.phone);
-    await _storage.write(key: 'talegaon_fresh_name', value: session.name);
+    try {
+      await _storage.write(key: 'talegaon_fresh_access_token', value: session.token);
+      await _storage.write(key: 'talegaon_fresh_refresh_token', value: session.refreshToken);
+      await _storage.write(key: 'talegaon_fresh_phone', value: session.phone);
+      await _storage.write(key: 'talegaon_fresh_name', value: session.name);
+    } catch (_) {
+      // Do not store auth tokens in plain preferences if secure storage fails.
+      try {
+        await _clear();
+      } catch (_) {
+        // Best effort cleanup of a partial write.
+      }
+      throw const AuthException('FRESHORA could not securely save your session on this device. Restart the app and try again. If creating an account, the account may already exist—try Sign in first.');
+    }
   }
 
   @override
   Future<CustomerSession> register(String phone, String pin, String name) async {
-    final response = await _client.post(Uri.parse('$_baseUrl/auth/register'),
-      headers: const {'Accept':'application/json','Content-Type':'application/json'},
-      body: jsonEncode({'phone': phone, 'pin': pin, 'name': name, 'device_id': await _deviceId()}));
+    final response = await _postAuth('/auth/register', {
+      'phone': phone,
+      'pin': pin,
+      'name': name,
+      'device_id': await _deviceId(),
+    });
     final session = await _sessionFromResponse(
       response,
       fallbackPhone: phone,
@@ -99,9 +159,11 @@ class HttpAuthRepository implements AuthRepository {
 
   @override
   Future<CustomerSession> login(String phone, String pin) async {
-    final response = await _client.post(Uri.parse('$_baseUrl/auth/login'),
-      headers: const {'Accept':'application/json','Content-Type':'application/json'},
-      body: jsonEncode({'phone': phone, 'pin': pin, 'device_id': await _deviceId()}));
+    final response = await _postAuth('/auth/login', {
+      'phone': phone,
+      'pin': pin,
+      'device_id': await _deviceId(),
+    });
     final session = await _sessionFromResponse(response, fallbackPhone: phone);
     await _save(session);
     return session;
