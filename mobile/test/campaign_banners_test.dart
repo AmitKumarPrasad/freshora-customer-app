@@ -17,6 +17,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: Scaffold(
       body: CampaignBanners(client: client, baseUrl: 'https://example.test', onBrowse: () => browsed = true),
     )));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pumpAndSettle();
     expect(find.text('First order offer'), findsOneWidget);
     expect(find.text('Copy WELCOME50'), findsOneWidget);
