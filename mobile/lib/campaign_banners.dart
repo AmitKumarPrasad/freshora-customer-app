@@ -5,27 +5,31 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 class CampaignBanners extends StatefulWidget {
-  const CampaignBanners({super.key, required this.onBrowse});
+  const CampaignBanners({super.key, required this.onBrowse, this.client, this.baseUrl});
   final VoidCallback onBrowse;
+  final http.Client? client;
+  final String? baseUrl;
 
   @override
   State<CampaignBanners> createState() => _CampaignBannersState();
 }
 
 class _CampaignBannersState extends State<CampaignBanners> {
-  final _client = http.Client();
+  late final http.Client _client;
   List<Map<String, dynamic>> _banners = [];
 
   @override
   void initState() {
     super.initState();
+    _client = widget.client ?? http.Client();
     _load();
   }
 
   Future<void> _load() async {
     try {
-      const baseUrl = String.fromEnvironment('API_BASE_URL',
+      const defaultBaseUrl = String.fromEnvironment('API_BASE_URL',
           defaultValue: 'https://talegaon-fresh-ai-backend.onrender.com');
+      final baseUrl = widget.baseUrl ?? defaultBaseUrl;
       final response = await _client
           .get(Uri.parse('${baseUrl.replaceFirst(RegExp(r'/+$'), '')}/campaigns'))
           .timeout(const Duration(seconds: 8));
@@ -44,7 +48,7 @@ class _CampaignBannersState extends State<CampaignBanners> {
 
   @override
   void dispose() {
-    _client.close();
+    if (widget.client == null) _client.close();
     super.dispose();
   }
 
@@ -68,6 +72,7 @@ class _CampaignBannersState extends State<CampaignBanners> {
               padding: const EdgeInsets.all(16),
               child: Row(children: [
                 Expanded(
+                  child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -90,6 +95,7 @@ class _CampaignBannersState extends State<CampaignBanners> {
                         ),
                       TextButton(onPressed: widget.onBrowse, child: const Text('Shop now')),
                     ],
+                  ),
                   ),
                 ),
                 if (imageUrl.startsWith('https://'))
