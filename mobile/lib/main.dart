@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'auth_api.dart';
+import 'campaign_banners.dart';
 import 'ai_assistant.dart';
 import 'customer_api.dart';
 import 'product_api.dart';
@@ -1895,6 +1896,12 @@ class _HomePageState extends State<HomePage> {
                     borderSide: BorderSide.none),
               ),
             ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverToBoxAdapter(
+            child: CampaignBanners(onBrowse: widget.onBrowse),
           ),
         ),
         SliverPadding(
