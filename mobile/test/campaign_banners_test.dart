@@ -12,12 +12,11 @@ void main() {
       expect(request.url.path, '/campaigns');
       return http.Response(jsonEncode({'banners': [
         {'title': 'First order offer', 'description': '₹50 off ₹499', 'promo_code': 'WELCOME50'}
-      ]}), 200);
+      ]}), 200, headers: {'content-type': 'application/json; charset=utf-8'});
     });
     await tester.pumpWidget(MaterialApp(home: Scaffold(
       body: CampaignBanners(client: client, baseUrl: 'https://example.test', onBrowse: () => browsed = true),
     )));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pumpAndSettle();
     expect(find.text('First order offer'), findsOneWidget);
     expect(find.text('Copy WELCOME50'), findsOneWidget);
