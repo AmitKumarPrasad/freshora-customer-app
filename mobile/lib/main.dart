@@ -3012,7 +3012,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 /// Local promo codes: code -> (percentage off 0-1, flat max cap in rupees, flat discount if percent is null).
 const Map<String, _PromoOffer> _promoCodes = {
   'SHOP200': _PromoOffer(flatOff: 20, minOrder: 200),
-  'WELCOME50': _PromoOffer(flatOff: 50, minOrder: 500, firstOrderOnly: true),
+  'WELCOME50': _PromoOffer(flatOff: 50, minOrder: 499, firstOrderOnly: true),
   'FRESHORA20': _PromoOffer(percentOff: 0.20, maxOff: 100, minOrder: 499),
 };
 
@@ -3316,7 +3316,7 @@ class _CartPageState extends State<CartPage> {
                             errorText: _promoError,
                             errorMaxLines: 3,
                             helperText: _promoController.text.trim().toUpperCase() == 'WELCOME50'
-                                ? '₹50 off your first order. Minimum product subtotal ₹500. Eligibility verified at checkout.'
+                                ? '₹50 off your first order. Minimum product subtotal ₹499. Eligibility verified at checkout.'
                                 : _promoController.text.trim().toUpperCase() == 'SHOP200'
                                     ? '₹20 off orders of ₹200 or more.'
                                     : null,

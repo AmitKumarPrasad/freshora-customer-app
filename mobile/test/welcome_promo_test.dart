@@ -55,8 +55,8 @@ void main() {
     expect(find.text('Add ₹1 more to use this code'), findsOneWidget);
   });
 
-  testWidgets('local welcome promo requires product subtotal 500', (tester) async {
-    await tester.pumpWidget(cart(499));
+  testWidgets('local welcome promo requires product subtotal 499', (tester) async {
+    await tester.pumpWidget(cart(498));
     await applyWelcome(tester);
     expect(find.text('Add ₹1 more to use this code'), findsOneWidget);
     expect(find.text('Discount (WELCOME50)'), findsNothing);
@@ -64,7 +64,7 @@ void main() {
 
   testWidgets('local welcome promo cannot assume first-order eligibility',
       (tester) async {
-    await tester.pumpWidget(cart(500));
+    await tester.pumpWidget(cart(499));
     await applyWelcome(tester);
     expect(find.text('Sign in to verify first-order eligibility for this code.'),
       findsOneWidget);
