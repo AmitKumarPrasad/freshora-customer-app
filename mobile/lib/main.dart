@@ -211,24 +211,24 @@ const Map<String, _CatalogFallback> _packagedProductFallbacks = {
 _CatalogFallback? _packagedFallbackFor(String name) =>
     _packagedProductFallbacks[name.trim().toLowerCase()];
 
-// Clear product photos supplied for the catalogue. Matching is keyword based so
-// API names such as "Red Onions" and "Green Beans (500 g)" use the right photo.
+// Match explicit product aliases only; ingredient words in packaged products
+// must not override their own images.
 const Map<String, String> _clearProductAssetPaths = {
   'tomato': 'assets/images/products/tomatoes.png',
   'red onion': 'assets/images/products/red_onions.png',
   'onion': 'assets/images/products/red_onions.png',
   'potato': 'assets/images/products/potatoes.png',
   'garlic': 'assets/images/products/garlic.png',
-  'ginger': 'assets/images/products/ginger.png',
-  'green chilies': 'assets/images/products/green_chilies.png',
-  'green chillies': 'assets/images/products/green_chilies.png',
-  'green chilli': 'assets/images/products/green_chilies.png',
-  'green chili': 'assets/images/products/green_chilies.png',
-  'carrot': 'assets/images/products/carrots.png',
-  'okra': 'assets/images/products/okra.png',
-  'ladyfinger': 'assets/images/products/okra.png',
-  'lady finger': 'assets/images/products/okra.png',
-  'bhindi': 'assets/images/products/okra.png',
+  'ginger': 'assets/images/products/garlic.png',
+  'green chilies': 'assets/images/products/green_chilies_2.png',
+  'green chillies': 'assets/images/products/green_chilies_2.png',
+  'green chilli': 'assets/images/products/green_chilies_2.png',
+  'green chili': 'assets/images/products/green_chilies_2.png',
+  'carrot': 'assets/images/products/green_chilies.png',
+  'okra': 'assets/images/products/carrots.png',
+  'ladyfinger': 'assets/images/products/carrots.png',
+  'lady finger': 'assets/images/products/carrots.png',
+  'bhindi': 'assets/images/products/carrots.png',
   'cauliflower': 'assets/images/products/cauliflower.png',
   'cabbage': 'assets/images/products/cabbage.png',
   'coriander': 'assets/images/products/coriander.png',
@@ -293,14 +293,7 @@ const Map<String, String> _clearProductAssetPaths = {
 
 String? _assetPathForProduct(String name) {
   final normalized = name.trim().toLowerCase();
-  final exact = _clearProductAssetPaths[normalized];
-  if (exact != null) return exact;
-  final aliases = _clearProductAssetPaths.entries.toList()
-    ..sort((a, b) => b.key.length.compareTo(a.key.length));
-  for (final entry in aliases) {
-    if (normalized.contains(entry.key)) return entry.value;
-  }
-  return null;
+  return _clearProductAssetPaths[normalized];
 }
 
 class LoginPage extends StatefulWidget {
