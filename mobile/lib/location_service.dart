@@ -7,12 +7,16 @@ class CurrentLocationAddress {
     required this.address,
     required this.city,
     required this.pincode,
+    this.latitude,
+    this.longitude,
   });
 
   final String label;
   final String address;
   final String city;
   final String pincode;
+  final double? latitude;
+  final double? longitude;
 }
 
 CurrentLocationAddress addressFromPlacemark(Placemark place) {
@@ -57,9 +61,10 @@ Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
         await placemarkFromCoordinates(position.latitude, position.longitude);
     if (placemarks.isEmpty) return null;
     final result = addressFromPlacemark(placemarks.first);
-    return result.label.isEmpty && result.city.isEmpty && result.pincode.isEmpty
-        ? null
-        : result;
+    return CurrentLocationAddress(
+      label: result.label, address: result.address, city: result.city,
+      pincode: result.pincode, latitude: position.latitude, longitude: position.longitude,
+    );
   } catch (_) {
     return null;
   }
