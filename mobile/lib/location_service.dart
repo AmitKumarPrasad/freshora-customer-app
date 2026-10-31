@@ -72,3 +72,12 @@ Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
 
 Future<String?> detectCurrentLocationLabel() async =>
     (await detectCurrentLocationAddress())?.label;
+
+Future<CurrentLocationAddress?> addressForCoordinates(double latitude, double longitude) async {
+  try {
+    final places = await placemarkFromCoordinates(latitude, longitude);
+    return places.isEmpty ? null : addressFromPlacemark(places.first);
+  } catch (_) {
+    return null;
+  }
+}
