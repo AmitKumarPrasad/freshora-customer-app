@@ -1,3 +1,4 @@
+import 'address_location_picker.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
@@ -574,8 +575,9 @@ class CustomerAddress {
       required this.city,
       required this.pincode,
       this.landmark = '',
-      this.isDefault = false});
+      this.isDefault = false, this.latitude, this.longitude});
   final int? id;
+  final double? latitude, longitude;
   final String label, fullAddress, city, pincode, landmark;
   final bool isDefault;
 
@@ -588,6 +590,8 @@ class CustomerAddress {
         'city': city,
         'pincode': pincode,
         'is_default': isDefault,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 
   Map<String, dynamic> toJson() => {
@@ -597,6 +601,8 @@ class CustomerAddress {
         'city': city,
         'pincode': pincode,
         'landmark': landmark,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 
   static CustomerAddress? fromApiJson(dynamic value) {
@@ -615,7 +621,9 @@ class CustomerAddress {
         fullAddress: address,
         city: city,
         pincode: pincode,
-        isDefault: value['is_default'] == true);
+        isDefault: value['is_default'] == true,
+        latitude: (value['latitude'] as num?)?.toDouble(),
+        longitude: (value['longitude'] as num?)?.toDouble());
   }
 
   static CustomerAddress? fromJson(dynamic value) {
@@ -636,7 +644,9 @@ class CustomerAddress {
         city: city,
         pincode: pincode,
         landmark: landmark is String ? landmark : '',
-        isDefault: value['isDefault'] == true);
+        isDefault: value['isDefault'] == true,
+        latitude: (value['latitude'] as num?)?.toDouble(),
+        longitude: (value['longitude'] as num?)?.toDouble());
   }
 }
 
@@ -3522,6 +3532,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
               'Could not detect your location. Enter your address manually instead.')));
       return;
     }
+    if (location.latitude == null || location.longitude == null) return;
+    final selected = await Navigator.push<LatLng>(context, MaterialPageRoute(
+      builder: (_) => AddressLocationPicker(initialLocation: LatLng(location.latitude!, location.longitude!))));
+    if (!mounted || selected == null) return;
     await _addAddress(
         detectedArea: location.label,
         initialAddress: CustomerAddress(
@@ -3529,6 +3543,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       fullAddress: location.address,
       city: location.city,
       pincode: location.pincode,
+      latitude: selected.latitude,
+      longitude: selected.longitude,
     ));
   }
 
@@ -5323,6 +5339,8 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                 pincode: pincode.text.trim(),
                 landmark: landmark.text.trim(),
                 isDefault: widget.existing?.isDefault ?? false,
+                latitude: widget.existing?.latitude,
+                longitude: widget.existing?.longitude,
               ));
             },
             child: const Text('Save'),
