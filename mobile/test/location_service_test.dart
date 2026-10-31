@@ -22,4 +22,15 @@ void main() {
     ));
     expect(result.pincode, isEmpty);
   });
+  test('falls back to district when city is blank', () {
+    final result = addressFromPlacemark(const Placemark(
+      locality: '',
+      subAdministrativeArea: 'Maval',
+      subLocality: 'Induri',
+      postalCode: '410507',
+    ));
+    expect(result.city, 'Maval');
+    expect(result.label, contains('Induri'));
+    expect(result.address, isEmpty);
+  });
 }
