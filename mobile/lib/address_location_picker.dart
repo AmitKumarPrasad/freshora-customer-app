@@ -4,8 +4,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 
 class AddressLocationPicker extends StatefulWidget {
-  const AddressLocationPicker({super.key, required this.initialLocation});
+  const AddressLocationPicker({super.key, required this.initialLocation, this.requireSelection = false});
   final LatLng initialLocation;
+  final bool requireSelection;
 
   @override
   State<AddressLocationPicker> createState() => _AddressLocationPickerState();
@@ -13,6 +14,7 @@ class AddressLocationPicker extends StatefulWidget {
 
 class _AddressLocationPickerState extends State<AddressLocationPicker> {
   late LatLng location = widget.initialLocation;
+  late bool hasSelection = !widget.requireSelection;
   final mapController = MapController();
   final searchController = TextEditingController();
   bool searching = false;
@@ -35,7 +37,7 @@ class _AddressLocationPickerState extends State<AddressLocationPicker> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location not found. Try another search or choose on the map.')));
       } else {
         final point = LatLng(matches.first.latitude, matches.first.longitude);
-        setState(() => location = point);
+        setState(() { location = point; hasSelection = true; });
         mapController.move(point, 16);
       }
     } catch (_) {
@@ -65,7 +67,7 @@ class _AddressLocationPickerState extends State<AddressLocationPicker> {
         options: MapOptions(
           initialCenter: widget.initialLocation,
           initialZoom: 16,
-          onTap: (_, point) => setState(() => location = point),
+          onTap: (_, point) => setState(() { location = point; hasSelection = true; }),
         ),
         children: [
           TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -82,7 +84,7 @@ class _AddressLocationPickerState extends State<AddressLocationPicker> {
       SafeArea(child: Padding(
         padding: const EdgeInsets.all(16),
         child: SizedBox(width: double.infinity, child: FilledButton(
-          onPressed: () => Navigator.pop(context, location),
+          onPressed: hasSelection ? () => Navigator.pop(context, location) : null,
           child: const Text('Confirm location'),
         )),
       )),
