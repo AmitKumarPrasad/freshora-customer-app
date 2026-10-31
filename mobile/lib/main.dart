@@ -1,3 +1,4 @@
+import 'address_location_picker.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
@@ -574,8 +575,9 @@ class CustomerAddress {
       required this.city,
       required this.pincode,
       this.landmark = '',
-      this.isDefault = false});
+      this.isDefault = false, this.latitude, this.longitude});
   final int? id;
+  final double? latitude, longitude;
   final String label, fullAddress, city, pincode, landmark;
   final bool isDefault;
 
@@ -588,6 +590,8 @@ class CustomerAddress {
         'city': city,
         'pincode': pincode,
         'is_default': isDefault,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 
   Map<String, dynamic> toJson() => {
@@ -597,6 +601,8 @@ class CustomerAddress {
         'city': city,
         'pincode': pincode,
         'landmark': landmark,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 
   static CustomerAddress? fromApiJson(dynamic value) {
@@ -615,7 +621,9 @@ class CustomerAddress {
         fullAddress: address,
         city: city,
         pincode: pincode,
-        isDefault: value['is_default'] == true);
+        isDefault: value['is_default'] == true,
+        latitude: (value['latitude'] as num?)?.toDouble(),
+        longitude: (value['longitude'] as num?)?.toDouble());
   }
 
   static CustomerAddress? fromJson(dynamic value) {
@@ -636,7 +644,9 @@ class CustomerAddress {
         city: city,
         pincode: pincode,
         landmark: landmark is String ? landmark : '',
-        isDefault: value['isDefault'] == true);
+        isDefault: value['isDefault'] == true,
+        latitude: (value['latitude'] as num?)?.toDouble(),
+        longitude: (value['longitude'] as num?)?.toDouble());
   }
 }
 
@@ -3482,10 +3492,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool savingAddress = false;
   bool placingOrder = false;
 
-  Future<void> _addAddress({CustomerAddress? initialAddress}) async {
+  Future<void> _addAddress({CustomerAddress? initialAddress, String? detectedArea}) async {
     final result = await showDialog<CustomerAddress>(
       context: context,
-      builder: (_) => _AddressFormDialog(existing: initialAddress),
+      builder: (_) => _AddressFormDialog(existing: initialAddress, detectedArea: detectedArea),
     );
     if (result == null || !mounted) return;
     setState(() => savingAddress = true);
@@ -3516,18 +3526,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final location = await detectCurrentLocationAddress();
     if (!mounted) return;
     setState(() => savingAddress = false);
-    if (location == null) {
+    final hasGps = location?.latitude != null && location?.longitude != null;
+    if (!hasGps) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Could not detect your location. Enter your address manually instead.')));
-      return;
+          content: Text('Location unavailable. Search or tap the map to select your location.')));
     }
+    final selected = await Navigator.push<LatLng>(context, MaterialPageRoute(
+      builder: (_) => AddressLocationPicker(
+        initialLocation: hasGps ? LatLng(location!.latitude!, location.longitude!) : const LatLng(18.735, 73.675),
+        requireSelection: !hasGps)));
+    if (!mounted || selected == null) return;
+    final selectedAddress = await addressForCoordinates(selected.latitude, selected.longitude);
+    if (!mounted) return;
     await _addAddress(
+        detectedArea: selectedAddress?.label,
         initialAddress: CustomerAddress(
-      label: 'Current location',
-      fullAddress: location.address,
-      city: location.city,
-      pincode: location.pincode,
+      label: '',
+      fullAddress: '',
+      city: selectedAddress?.city ?? '',
+      pincode: selectedAddress?.pincode ?? '',
+      latitude: selected.latitude,
+      longitude: selected.longitude,
     ));
   }
 
@@ -5198,9 +5217,10 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _AddressFormDialog extends StatefulWidget {
-  const _AddressFormDialog({this.existing});
+  const _AddressFormDialog({this.existing, this.detectedArea});
 
   final CustomerAddress? existing;
+  final String? detectedArea;
 
   @override
   State<_AddressFormDialog> createState() => _AddressFormDialogState();
@@ -5248,14 +5268,26 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.existing == null ? 'Add Address' : 'Edit Address'),
+        title: Text(widget.existing?.id == null ? 'Add Address' : 'Edit Address'),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
             child: Form(
               key: _formKey,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
+                if ((widget.detectedArea ?? '').isNotEmpty) ...[
+                  Text('Detected area: ${widget.detectedArea}. Please verify it and enter your house details.'),
+                  const SizedBox(height: 12),
+                ],
+                const Align(alignment: Alignment.centerLeft, child: Text('Save address as')),
+                Wrap(spacing: 8, children: [
+                  for (final choice in ['Home', 'Work', 'Other'])
+                    ChoiceChip(label: Text(choice), selected: label.text == choice,
+                      onSelected: (_) => setState(() => label.text = choice)),
+                ]),
+                const SizedBox(height: 8),
                 TextFormField(
+                  onChanged: (_) => setState(() {}),
                   controller: label,
                   maxLength: 30,
                   decoration: const InputDecoration(labelText: 'Label *', hintText: 'Home or Work', border: OutlineInputBorder()),
@@ -5301,6 +5333,10 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
           FilledButton(
             onPressed: () {
               if (!_formKey.currentState!.validate()) return;
+              final existing = widget.existing;
+              final addressChanged = existing?.id != null &&
+                  (address.text.trim() != existing!.fullAddress ||
+                   city.text.trim() != existing.city || pincode.text.trim() != existing.pincode);
               Navigator.pop(context, CustomerAddress(
                 id: widget.existing?.id,
                 label: label.text.trim(),
@@ -5309,6 +5345,8 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                 pincode: pincode.text.trim(),
                 landmark: landmark.text.trim(),
                 isDefault: widget.existing?.isDefault ?? false,
+                latitude: addressChanged ? null : widget.existing?.latitude,
+                longitude: addressChanged ? null : widget.existing?.longitude,
               ));
             },
             child: const Text('Save'),

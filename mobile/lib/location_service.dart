@@ -7,17 +7,23 @@ class CurrentLocationAddress {
     required this.address,
     required this.city,
     required this.pincode,
+    this.latitude,
+    this.longitude,
   });
 
   final String label;
   final String address;
   final String city;
   final String pincode;
+  final double? latitude;
+  final double? longitude;
 }
 
 CurrentLocationAddress addressFromPlacemark(Placemark place) {
   final area = (place.subLocality ?? '').trim();
-  final city = (place.locality ?? place.administrativeArea ?? '').trim();
+  final city = [place.locality, place.subAdministrativeArea, place.administrativeArea]
+      .map((value) => (value ?? '').trim())
+      .firstWhere((value) => value.isNotEmpty, orElse: () => '');
   final rawPostalCode = (place.postalCode ?? '').trim();
   final pincode = RegExp(r'^\d{6}$').hasMatch(rawPostalCode) ? rawPostalCode : '';
   final label = [area, city].where((part) => part.isNotEmpty).toSet().join(', ');
@@ -55,7 +61,10 @@ Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
         await placemarkFromCoordinates(position.latitude, position.longitude);
     if (placemarks.isEmpty) return null;
     final result = addressFromPlacemark(placemarks.first);
-    return result.city.isEmpty ? null : result;
+    return CurrentLocationAddress(
+      label: result.label, address: result.address, city: result.city,
+      pincode: result.pincode, latitude: position.latitude, longitude: position.longitude,
+    );
   } catch (_) {
     return null;
   }
@@ -63,3 +72,12 @@ Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
 
 Future<String?> detectCurrentLocationLabel() async =>
     (await detectCurrentLocationAddress())?.label;
+
+Future<CurrentLocationAddress?> addressForCoordinates(double latitude, double longitude) async {
+  try {
+    final places = await placemarkFromCoordinates(latitude, longitude);
+    return places.isEmpty ? null : addressFromPlacemark(places.first);
+  } catch (_) {
+    return null;
+  }
+}
