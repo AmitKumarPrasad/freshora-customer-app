@@ -3526,15 +3526,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final location = await detectCurrentLocationAddress();
     if (!mounted) return;
     setState(() => savingAddress = false);
-    if (location == null) {
+    final hasGps = location?.latitude != null && location?.longitude != null;
+    if (!hasGps) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Could not detect your location. Enter your address manually instead.')));
-      return;
+          content: Text('Location unavailable. Search or tap the map to select your location.')));
     }
-    if (location.latitude == null || location.longitude == null) return;
     final selected = await Navigator.push<LatLng>(context, MaterialPageRoute(
-      builder: (_) => AddressLocationPicker(initialLocation: LatLng(location.latitude!, location.longitude!))));
+      builder: (_) => AddressLocationPicker(
+        initialLocation: hasGps ? LatLng(location!.latitude!, location.longitude!) : const LatLng(18.735, 73.675),
+        requireSelection: !hasGps)));
     if (!mounted || selected == null) return;
     final selectedAddress = await addressForCoordinates(selected.latitude, selected.longitude);
     if (!mounted) return;
@@ -3542,7 +3542,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         detectedArea: selectedAddress?.label,
         initialAddress: CustomerAddress(
       label: '',
-      fullAddress: location.address,
+      fullAddress: '',
       city: selectedAddress?.city ?? '',
       pincode: selectedAddress?.pincode ?? '',
       latitude: selected.latitude,
