@@ -3482,10 +3482,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool savingAddress = false;
   bool placingOrder = false;
 
-  Future<void> _addAddress({CustomerAddress? initialAddress}) async {
+  Future<void> _addAddress({CustomerAddress? initialAddress, String? detectedArea}) async {
     final result = await showDialog<CustomerAddress>(
       context: context,
-      builder: (_) => _AddressFormDialog(existing: initialAddress),
+      builder: (_) => _AddressFormDialog(existing: initialAddress, detectedArea: detectedArea),
     );
     if (result == null || !mounted) return;
     setState(() => savingAddress = true);
@@ -3523,8 +3523,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
     await _addAddress(
+        detectedArea: location.label,
         initialAddress: CustomerAddress(
-      label: 'Current location',
+      label: '',
       fullAddress: location.address,
       city: location.city,
       pincode: location.pincode,
@@ -5198,9 +5199,10 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _AddressFormDialog extends StatefulWidget {
-  const _AddressFormDialog({this.existing});
+  const _AddressFormDialog({this.existing, this.detectedArea});
 
   final CustomerAddress? existing;
+  final String? detectedArea;
 
   @override
   State<_AddressFormDialog> createState() => _AddressFormDialogState();
@@ -5248,14 +5250,26 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.existing == null ? 'Add Address' : 'Edit Address'),
+        title: Text(widget.existing?.id == null ? 'Add Address' : 'Edit Address'),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
             child: Form(
               key: _formKey,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
+                if ((widget.detectedArea ?? '').isNotEmpty) ...[
+                  Text('Detected area: ${widget.detectedArea}. Please verify it and enter your house details.'),
+                  const SizedBox(height: 12),
+                ],
+                const Align(alignment: Alignment.centerLeft, child: Text('Save address as')),
+                Wrap(spacing: 8, children: [
+                  for (final choice in ['Home', 'Work', 'Other'])
+                    ChoiceChip(label: Text(choice), selected: label.text == choice,
+                      onSelected: (_) => setState(() => label.text = choice)),
+                ]),
+                const SizedBox(height: 8),
                 TextFormField(
+                  onChanged: (_) => setState(() {}),
                   controller: label,
                   maxLength: 30,
                   decoration: const InputDecoration(labelText: 'Label *', hintText: 'Home or Work', border: OutlineInputBorder()),
