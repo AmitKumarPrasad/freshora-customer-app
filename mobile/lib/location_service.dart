@@ -17,7 +17,9 @@ class CurrentLocationAddress {
 
 CurrentLocationAddress addressFromPlacemark(Placemark place) {
   final area = (place.subLocality ?? '').trim();
-  final city = (place.locality ?? place.administrativeArea ?? '').trim();
+  final city = [place.locality, place.subAdministrativeArea, place.administrativeArea]
+      .map((value) => (value ?? '').trim())
+      .firstWhere((value) => value.isNotEmpty, orElse: () => '');
   final rawPostalCode = (place.postalCode ?? '').trim();
   final pincode = RegExp(r'^\d{6}$').hasMatch(rawPostalCode) ? rawPostalCode : '';
   final label = [area, city].where((part) => part.isNotEmpty).toSet().join(', ');
@@ -55,7 +57,9 @@ Future<CurrentLocationAddress?> detectCurrentLocationAddress() async {
         await placemarkFromCoordinates(position.latitude, position.longitude);
     if (placemarks.isEmpty) return null;
     final result = addressFromPlacemark(placemarks.first);
-    return result.city.isEmpty ? null : result;
+    return result.label.isEmpty && result.city.isEmpty && result.pincode.isEmpty
+        ? null
+        : result;
   } catch (_) {
     return null;
   }
