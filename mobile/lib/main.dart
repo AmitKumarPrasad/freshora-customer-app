@@ -3536,13 +3536,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final selected = await Navigator.push<LatLng>(context, MaterialPageRoute(
       builder: (_) => AddressLocationPicker(initialLocation: LatLng(location.latitude!, location.longitude!))));
     if (!mounted || selected == null) return;
+    final selectedAddress = await addressForCoordinates(selected.latitude, selected.longitude);
+    if (!mounted) return;
     await _addAddress(
-        detectedArea: location.label,
+        detectedArea: selectedAddress?.label,
         initialAddress: CustomerAddress(
       label: '',
       fullAddress: location.address,
-      city: location.city,
-      pincode: location.pincode,
+      city: selectedAddress?.city ?? '',
+      pincode: selectedAddress?.pincode ?? '',
       latitude: selected.latitude,
       longitude: selected.longitude,
     ));
