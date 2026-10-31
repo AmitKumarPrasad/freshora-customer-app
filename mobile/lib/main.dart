@@ -5333,6 +5333,10 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
           FilledButton(
             onPressed: () {
               if (!_formKey.currentState!.validate()) return;
+              final existing = widget.existing;
+              final addressChanged = existing?.id != null &&
+                  (address.text.trim() != existing!.fullAddress ||
+                   city.text.trim() != existing.city || pincode.text.trim() != existing.pincode);
               Navigator.pop(context, CustomerAddress(
                 id: widget.existing?.id,
                 label: label.text.trim(),
@@ -5341,8 +5345,8 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
                 pincode: pincode.text.trim(),
                 landmark: landmark.text.trim(),
                 isDefault: widget.existing?.isDefault ?? false,
-                latitude: widget.existing?.latitude,
-                longitude: widget.existing?.longitude,
+                latitude: addressChanged ? null : widget.existing?.latitude,
+                longitude: addressChanged ? null : widget.existing?.longitude,
               ));
             },
             child: const Text('Save'),
