@@ -230,7 +230,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), 'Work');
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Work'));
+    await tester.pump();
+    expect(tester.widget<TextField>(fields.at(0)).controller?.text, 'Work');
     await tester.enterText(fields.at(1), 'Office Road');
     await tester.enterText(fields.at(2), 'Talegaon');
     await tester.enterText(fields.at(3), '410507');
