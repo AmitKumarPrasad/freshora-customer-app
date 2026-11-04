@@ -432,6 +432,7 @@ void main() {
 
   testWidgets('My Details shows customer information, not photo options',
       (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
