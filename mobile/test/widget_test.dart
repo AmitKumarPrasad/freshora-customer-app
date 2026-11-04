@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,9 +7,19 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talegaon_fresh/customer_api.dart';
+import 'package:talegaon_fresh/auth_api.dart';
 import 'package:talegaon_fresh/main.dart';
 import 'package:talegaon_fresh/landing_page.dart';
 import 'package:talegaon_fresh/product_api.dart';
+
+class RestoreTestRepository implements AuthRepository {
+  RestoreTestRepository(this.restore);
+  final Future<CustomerSession?> Function() restore;
+  @override Future<CustomerSession?> restoreSession() => restore();
+  @override Future<CustomerSession> login(String phone, String pin) => throw UnimplementedError();
+  @override Future<CustomerSession> register(String phone, String pin, String name) => throw UnimplementedError();
+  @override Future<void> logout() async {}
+}
 
 class FakeProductRepository implements ProductRepository {
   @override
@@ -65,6 +76,50 @@ class ExpandedProductRepository implements ProductRepository {
 }
 
 void main() {
+  testWidgets('startup waits for session restore before showing sign in', (tester) async {
+    final result = Completer<CustomerSession?>();
+    await tester.pumpWidget(TalegaonFreshApp(authRepository: RestoreTestRepository(() => result.future)));
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.widgetWithText(OutlinedButton, 'Sign in'), findsNothing);
+    result.complete(null);
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(OutlinedButton, 'Sign in'), findsOneWidget);
+  });
+
+  testWidgets('temporary session restore failure offers retry instead of sign in', (tester) async {
+    var attempts = 0;
+    final repository = RestoreTestRepository(() async {
+      if (++attempts == 1) throw const AuthException('offline');
+      return null;
+    });
+    await tester.pumpWidget(TalegaonFreshApp(authRepository: repository));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Sign in'), findsNothing);
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(attempts, 2);
+    expect(find.widgetWithText(OutlinedButton, 'Sign in'), findsOneWidget);
+  });
+
+  testWidgets('restored cart offers to continue and opens the cart', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'talegaon_fresh_cart_9876543210': jsonEncode([
+        {'name': 'Tomato', 'unit': '1 kg', 'price': 30, 'quantity': 1}
+      ]),
+    });
+    await tester.pumpWidget(MaterialApp(home: AppShell(
+      repository: FakeProductRepository(),
+      session: const CustomerSession(phone: '9876543210', name: 'Test', token: 'test-token'),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Continue your order?'), findsOneWidget);
+    await tester.tap(find.text('Continue order'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CartPage), findsOneWidget);
+    expect(find.text('Tomato'), findsOneWidget);
+  });
   testWidgets('market welcome fits a phone and opens account creation',
       (tester) async {
     tester.view.devicePixelRatio = 1;

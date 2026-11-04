@@ -837,6 +837,8 @@ class TalegaonFreshApp extends StatefulWidget {
 class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   CustomerSession? session;
   bool showSplash = true;
+  bool restoringSession = true;
+  String? restoreError;
   bool showAuthentication = false;
   bool startWithCreateAccount = false;
 
@@ -856,6 +858,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   }
 
   Future<void> _restoreSession() async {
+    if (mounted) setState(() { restoringSession = true; restoreError = null; });
     try {
       final restored = await widget.authRepository.restoreSession();
       if (mounted && restored != null) {
@@ -864,6 +867,9 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       }
     } catch (e) {
       debugPrint('Session restore failed: $e');
+      if (mounted) setState(() => restoreError = 'Could not reconnect to your session. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => restoringSession = false);
     }
   }
 
@@ -913,7 +919,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       return renewed?.token;
     } catch (e) {
       debugPrint('Customer session refresh failed: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -940,8 +946,17 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
         title: 'FRESHORA',
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
-        home: showSplash
+        home: showSplash || restoringSession
             ? const SplashScreen()
+            : restoreError != null
+                ? Scaffold(body: SafeArea(child: Center(child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(restoreError!, textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      FilledButton(onPressed: _restoreSession, child: const Text('Retry')),
+                    ]),
+                  ))))
             : session == null
                 ? showAuthentication
                     ? LoginPage(
@@ -1142,6 +1157,24 @@ class _AppShellState extends State<AppShell> {
   final favorites = <String>{};
   String? cartSyncError;
   String? detectedLocation;
+  bool _resumePromptShown = false;
+
+  void _promptForRestoredCart() {
+    if (_resumePromptShown || cart.isEmpty) return;
+    _resumePromptShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || cart.isEmpty) return;
+      final resume = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+        title: const Text('Continue your order?'),
+        content: const Text('You have items in your cart. Continue your order?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Later')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Continue order')),
+        ],
+      ));
+      if (mounted && resume == true) setState(() => tab = 2);
+    });
+  }
 
   @override
   void initState() {
@@ -1188,6 +1221,7 @@ class _AppShellState extends State<AppShell> {
               ..addAll(remote);
             cartSyncError = null;
           });
+          _promptForRestoredCart();
         }
         return;
       } on CustomerApiException catch (e) {
@@ -1239,10 +1273,12 @@ class _AppShellState extends State<AppShell> {
           quantity.toInt(),
         ));
       }
-      if (mounted && _cartRevision == revisionAtStart)
+      if (mounted && _cartRevision == revisionAtStart) {
         setState(() => cart
           ..clear()
           ..addAll(restored));
+        _promptForRestoredCart();
+      }
     } catch (_) {
       await prefs.remove(_cartStorageKey);
     }
@@ -1662,6 +1698,7 @@ class _AppShellState extends State<AppShell> {
           onDecrementProduct: decrementProduct),
       CartPage(
           cart: cart,
+          checkoutScope: widget.session.phone,
           onIncrement: _incrementCartItem,
           onDecrement: _decrementCartItem,
           onRemove: _removeCartItem,
@@ -3062,6 +3099,7 @@ class CartPage extends StatefulWidget {
       required this.onRemove,
       this.syncError,
       this.onRetrySync,
+      this.checkoutScope,
       required this.addresses,
       required this.onOrderPlaced,
       required this.onContinueShopping,
@@ -3072,6 +3110,7 @@ class CartPage extends StatefulWidget {
   final ValueChanged<CartItem> onRemove;
   final String? syncError;
   final Future<void> Function()? onRetrySync;
+  final String? checkoutScope;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(
       String payment, CustomerAddress address, double total, String? promoCode) onOrderPlaced;
@@ -3193,6 +3232,7 @@ class _CartPageState extends State<CartPage> {
       MaterialPageRoute(
         builder: (_) => CheckoutPage(
           total: total,
+          checkoutScope: widget.checkoutScope,
           promoCode: _activePromoCode,
           addresses: widget.addresses,
           onOrderPlaced: widget.onOrderPlaced,
@@ -3473,10 +3513,12 @@ class CheckoutPage extends StatefulWidget {
       required this.addresses,
       required this.onOrderPlaced,
       required this.onContinueShopping,
+      this.checkoutScope,
       this.promoCode,
       this.api});
   final double total;
   final String? promoCode;
+  final String? checkoutScope;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(
       String payment, CustomerAddress address, double total, String? promoCode) onOrderPlaced;
@@ -3491,6 +3533,35 @@ class _CheckoutPageState extends State<CheckoutPage> {
   int selectedAddress = 0;
   bool savingAddress = false;
   bool placingOrder = false;
+
+  String? get _addressChoiceKey => widget.checkoutScope == null
+      ? null : 'freshora_checkout_address_${widget.checkoutScope}';
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreAddressChoice();
+  }
+
+  Future<void> _restoreAddressChoice() async {
+    final key = _addressChoiceKey;
+    if (key == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getInt(key);
+    if (!mounted || id == null) return;
+    final index = widget.addresses.indexWhere((address) => address.id == id);
+    if (index >= 0) setState(() => selectedAddress = index);
+  }
+
+  Future<void> _selectAddress(int index) async {
+    setState(() => selectedAddress = index);
+    final key = _addressChoiceKey;
+    final id = widget.addresses[index].id;
+    if (key != null && id != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(key, id);
+    }
+  }
 
   Future<void> _addAddress({CustomerAddress? initialAddress, String? detectedArea}) async {
     final result = await showDialog<CustomerAddress>(
@@ -3508,6 +3579,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         selectedAddress = widget.addresses.length - 1;
         savingAddress = false;
       });
+      unawaited(_selectAddress(widget.addresses.length - 1));
     } on CustomerApiException catch (e) {
       if (!mounted) return;
       setState(() => savingAddress = false);
@@ -3579,7 +3651,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   title: Text(widget.addresses[i].label,
                       style: const TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Text(widget.addresses[i].displayAddress),
-                  onTap: () => setState(() => selectedAddress = i),
+                  onTap: () => _selectAddress(i),
                 ),
               ),
           ],

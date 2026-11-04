@@ -79,7 +79,8 @@ class HttpAuthRepository implements AuthRepository {
     }
   }
 
-  Future<http.Response> _postAuth(String path, Map<String, dynamic> body) async {
+  Future<http.Response> _postAuth(String path, Map<String, dynamic> body,
+      {Duration timeout = const Duration(seconds: 30)}) async {
     try {
       return await _client
           .post(
@@ -87,7 +88,7 @@ class HttpAuthRepository implements AuthRepository {
             headers: const {'Accept': 'application/json', 'Content-Type': 'application/json'},
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(timeout);
     } on TimeoutException {
       throw const AuthException('The server took too long to respond. Check your internet and try again. If creating an account, try signing in before registering again.');
     } on SocketException {
@@ -180,9 +181,10 @@ class HttpAuthRepository implements AuthRepository {
     if (refresh == null || refresh.isEmpty) return null;
     final phone = await _storage.read(key: 'talegaon_fresh_phone');
     final name = await _storage.read(key: 'talegaon_fresh_name');
-    final response = await _client.post(Uri.parse('$_baseUrl/auth/refresh'),
-      headers: const {'Accept':'application/json','Content-Type':'application/json'},
-      body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
+    final response = await _postAuth('/auth/refresh', {
+      'refresh_token': refresh,
+      'device_id': await _deviceId(),
+    }, timeout: const Duration(seconds: 90));
     if (response.statusCode == 401 || response.statusCode == 403) {
       await _clear();
       return null;
