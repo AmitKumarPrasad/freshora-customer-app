@@ -3535,6 +3535,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   int selectedAddress = 0;
   bool savingAddress = false;
   bool placingOrder = false;
+  bool _addressChoiceLoaded = false;
+  bool _addressManuallySelected = false;
 
   String? get _addressChoiceKey => widget.checkoutScope == null
       ? null : 'freshora_checkout_address_${widget.checkoutScope}';
@@ -3547,15 +3549,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _restoreAddressChoice() async {
     final key = _addressChoiceKey;
-    if (key == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    final id = prefs.getInt(key);
-    if (!mounted || id == null) return;
-    final index = widget.addresses.indexWhere((address) => address.id == id);
-    if (index >= 0) setState(() => selectedAddress = index);
+    int? id;
+    try {
+      if (key != null) {
+        final prefs = await SharedPreferences.getInstance();
+        id = prefs.getInt(key);
+      }
+    } catch (_) {
+      // Checkout remains available even if local preference storage fails.
+    }
+    if (!mounted) return;
+    final index = id == null
+        ? -1
+        : widget.addresses.indexWhere((address) => address.id == id);
+    setState(() {
+      if (!_addressManuallySelected && index >= 0) selectedAddress = index;
+      _addressChoiceLoaded = true;
+    });
   }
 
   Future<void> _selectAddress(int index) async {
+    _addressManuallySelected = true;
     setState(() => selectedAddress = index);
     final key = _addressChoiceKey;
     final id = widget.addresses[index].id;
@@ -3717,7 +3731,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           SummaryRow(label: 'Total', value: widget.total, bold: true),
           const SizedBox(height: 18),
           FilledButton(
-            onPressed: widget.addresses.isEmpty || placingOrder || savingAddress
+            onPressed: widget.addresses.isEmpty || placingOrder || savingAddress || !_addressChoiceLoaded
                 ? null
                 : () async {
                     if (placingOrder) return;

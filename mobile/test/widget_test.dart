@@ -591,5 +591,37 @@ void main() {
     expect(prefs.getString('freshora_profile_photo_9876543210'), isNull);
   });
 
+  testWidgets('checkout restores saved address and respects a new selection', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'freshora_checkout_address_test-account': 2,
+    });
+    final addresses = [
+      CustomerAddress(id: 1, label: 'Home', fullAddress: 'First Road',
+          city: 'Talegaon', pincode: '410507'),
+      CustomerAddress(id: 2, label: 'Work', fullAddress: 'Second Road',
+          city: 'Talegaon', pincode: '410507'),
+    ];
+    await tester.pumpWidget(MaterialApp(home: CheckoutPage(
+      total: 100,
+      checkoutScope: 'test-account',
+      addresses: addresses,
+      onOrderPlaced: (_, __, ___, ____) async => throw UnimplementedError(),
+      onContinueShopping: () {},
+    )));
+    await tester.pumpAndSettle();
+
+    Icon selectedIcon(String label) => tester.widget<Icon>(find.descendant(
+      of: find.ancestor(of: find.text(label), matching: find.byType(ListTile)),
+      matching: find.byType(Icon),
+    ).first);
+    expect(selectedIcon('Work').icon, Icons.radio_button_checked);
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(selectedIcon('Home').icon, Icons.radio_button_checked);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('freshora_checkout_address_test-account'), 1);
+  });
+
+
 }
 
