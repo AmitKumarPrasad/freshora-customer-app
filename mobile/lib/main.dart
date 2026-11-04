@@ -1485,6 +1485,7 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _signOut() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('freshora_checkout_address_${widget.session.phone}');
     await prefs.remove(_cartStorageKey);
     await prefs.remove(_ordersStorageKey);
     await prefs.remove(_addressesStorageKey);
@@ -1503,6 +1504,7 @@ class _AppShellState extends State<AppShell> {
       prefs.remove(_ordersStorageKey),
       prefs.remove(_addressesStorageKey),
       prefs.remove(_favoritesStorageKey),
+      prefs.remove('freshora_checkout_address_${widget.session.phone}'),
       prefs.remove('freshora_profile_photo_${widget.session.phone}'),
     ]);
     if (!mounted) return;
